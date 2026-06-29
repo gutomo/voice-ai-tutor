@@ -28,9 +28,15 @@ def healthz() -> dict[str, str]:
 
 
 @app.get("/api/health")
-def api_health() -> dict[str, str]:
+def api_health() -> dict[str, object]:
     """フロントの疎通確認用 (Vite プロキシ /api 経由)。"""
-    return {"status": "ok", "service": "backend"}
+    from app.config import settings
+
+    return {
+        "status": "ok",
+        "service": "backend",
+        "scoring_ready": settings.azure_ready(),
+    }
 
 
 # --- ビルド済み SPA の配信 (存在する場合のみ) ---

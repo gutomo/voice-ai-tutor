@@ -8,7 +8,7 @@ LPK (インドネシアの職業訓練機関) 向けの、音声AI日本語チ�
 - フェーズ別の実行手順: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md)
 - 行動規範 (Claude Code 用): [CLAUDE.md](CLAUDE.md)
 
-現在のステータス: **Phase 1 (Web録音ページ) 完了**。スマホのブラウザでタップ録音 → アップロード → 再生できる。
+現在のステータス: **Phase 2 (発音採点) 完了**。録音 → アップロード → Azure ja-JP 発音採点 → 画面にスコア (Accuracy/Fluency/Completeness + 要練習の単語)。
 
 ## 構成
 
@@ -92,7 +92,44 @@ cloudflared tunnel --url http://localhost:5173
 代替: オフラインで済ませたい場合は `@vitejs/plugin-basic-ssl` を入れて `npm run dev` を https 化する
 （スマホで証明書の警告をタップで通す必要がある）。
 
+## 発音採点 (Phase 2)
+
+アップロード後、フロントが自動で `POST /api/turn/{id}/score` を呼び、画面にスコアを出す。
+
+- 変換: 受信音声を ffmpeg で WAV(16k/mono/16bit) に変換 (`backend/app/audio.py`)。
+- 採点: Azure ja-JP の **scripted** Pronunciation Assessment (`backend/app/speech.py`)。参照テキストは
+  `backend/app/scenarios.py` の介護モデル文。Accuracy / Fluency / Completeness / 総合スコアを返す。
+- ja-JP は **Prosody を返さない**。また音素名が意味を持たないため、要練習リストは**単語**単位
+  (AccuracyScore < 60 = Azure の Mispronunciation 判定) で出す。
+
+### 必要なもの
+
+- **ffmpeg**（[必要なもの](#必要なもの)参照）が PATH にあること。
+- **Azure Speech の鍵**: `backend/.env` に `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION=japaneast`。
+  デモ全体が **F0 無料枠 ($0)** に収まる。未設定だと採点APIは 503、画面は「未設定」と表示する。
+
+Azure リソース作成 (一度だけ、CLI 例):
+
+```bash
+az cognitiveservices account create \
+  --name speech-tutor-dev --resource-group rg-voice-tutor \
+  --kind SpeechServices --sku F0 --location japaneast --yes
+```
+
+ポータルなら「リソースの作成 → Speech → リージョン Japan East → 価格レベル F0」。
+作成後「キーとエンドポイント」から KEY 1 と Location をコピーして `backend/.env` に入れる。
+
+### 実 Azure を使うテスト (任意)
+
+ユニットテストは Azure/ffmpeg をスタブする。実呼び出しは 1 本だけ、明示フラグで:
+
+```bash
+cd backend
+RUN_AZURE_E2E=1 AZURE_E2E_AUDIO=/path/to/recording.webm uv run pytest tests/test_e2e_azure.py
+```
+
 ## デプロイ
 
 Azure Container Apps へのデプロイは [infra/](infra/) の Terraform を参照 (デモはゼロスケールで、商談時だけ起動)。
 ブートストラップ順などの詳細は [CLAUDE.md](CLAUDE.md) の「デプロイ」節にある。
+本番イメージには ffmpeg と Azure SDK のランタイムlibs (libssl3/libasound2) を同梱済み ([Dockerfile](Dockerfile))。

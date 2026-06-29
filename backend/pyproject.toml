@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn[standard]>=0.32",
     "pydantic-settings>=2.6",
     "python-multipart>=0.0.32",
+    "azure-cognitiveservices-speech>=1.40,<1.46",
 ]
 
 [dependency-groups]

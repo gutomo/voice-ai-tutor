@@ -30,8 +30,15 @@ class Settings(BaseSettings):
     # アップロードした音声の保存先 (相対パスは backend/ 起点に解決する)
     upload_dir: str = "uploads"
 
+    # 発音採点で「弱い」とみなす単語のしきい値 (Azure の Mispronunciation 判定=60 に合わせる)
+    weak_word_threshold: float = 60.0
+
     # メール送信元 (SES で検証済みのアドレス)
     email_sender: str | None = None
+
+    def azure_ready(self) -> bool:
+        """Azure Speech の発音採点に必要な鍵とリージョンが揃っているか。"""
+        return bool(self.azure_speech_key and self.azure_speech_region)
 
 
 settings = Settings()

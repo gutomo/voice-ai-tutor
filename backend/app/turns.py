@@ -9,9 +9,14 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 
+from app import scenarios, scoring
+from app.audio import AudioConversionError
 from app.config import settings
+from app.schemas import PronunciationResult, ScoreRequest
+from app.speech import NoSpeechError, SpeechError
 
 router = APIRouter(prefix="/api", tags=["turns"])
 
@@ -48,6 +53,12 @@ def _pick_extension(content_type: str | None, filename: str | None) -> str:
     if filename and "." in filename:
         return Path(filename).suffix.lower()
     return ".webm"
+
+
+def _find_upload(turn_id: str) -> Path | None:
+    """turn_id に対応する保存済み音声 (元のアップロード) を探す。"""
+    matches = sorted(_upload_dir().glob(f"{turn_id}.*"))
+    return matches[0] if matches else None
 
 
 @router.post("/turn")
@@ -92,11 +103,10 @@ def get_turn_audio(turn_id: str) -> FileResponse:
     if not _TURN_ID_RE.match(turn_id):
         raise HTTPException(status_code=404, detail="不正な turn_id です")
 
-    matches = sorted(_upload_dir().glob(f"{turn_id}.*"))
-    if not matches:
+    path = _find_upload(turn_id)
+    if path is None:
         raise HTTPException(status_code=404, detail="音声が見つかりません")
 
-    path = matches[0]
     media_type = {
         ".webm": "audio/webm",
         ".ogg": "audio/ogg",
@@ -106,3 +116,64 @@ def get_turn_audio(turn_id: str) -> FileResponse:
         ".aac": "audio/aac",
     }.get(path.suffix.lower(), "application/octet-stream")
     return FileResponse(path, media_type=media_type)
+
+
+@router.post("/turn/{turn_id}/score")
+async def score_turn(turn_id: str, body: ScoreRequest | None = None) -> PronunciationResult:
+    """保存済みターンを Azure ja-JP scripted 発音採点にかける。"""
+    if not _TURN_ID_RE.match(turn_id):
+        raise HTTPException(status_code=404, detail="不正な turn_id です")
+    src = _find_upload(turn_id)
+    if src is None:
+        raise HTTPException(status_code=404, detail="音声が見つかりません")
+    if not settings.azure_ready():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "発音採点は未設定です "
+                "(AZURE_SPEECH_KEY / AZURE_SPEECH_REGION を設定してください)"
+            ),
+        )
+
+    req = body or ScoreRequest()
+    reference_text = req.reference_text or scenarios.get_reference_text(req.scenario, req.turn_no)
+    if not reference_text:
+        raise HTTPException(
+            status_code=422,
+            detail="モデル文を解決できません (scenario+turn_no か reference_text を指定)",
+        )
+
+    try:
+        return await run_in_threadpool(
+            scoring.score_turn_sync,
+            src,
+            turn_id,
+            reference_text,
+            settings.azure_speech_key,
+            settings.azure_speech_region,
+        )
+    except AudioConversionError as e:
+        raise HTTPException(status_code=422, detail=f"音声を変換できませんでした: {e}") from e
+    except NoSpeechError as e:
+        raise HTTPException(status_code=422, detail="もう一度録音してください") from e
+    except SpeechError as e:
+        raise HTTPException(status_code=502, detail="発音採点に失敗しました") from e
+
+
+@router.get("/scenario/{scenario}/turns")
+def get_scenario_turns(scenario: str) -> dict[str, object]:
+    """シナリオのモデル文一覧 (フロントがプロンプト表示に使う静的データ)。"""
+    turns = scenarios.list_turns(scenario)
+    if not turns:
+        raise HTTPException(status_code=404, detail="シナリオが見つかりません")
+    return {
+        "scenario": scenario,
+        "turns": [
+            {
+                "turn_no": t.turn_no,
+                "reference_text": t.reference_text,
+                "gloss_id": t.gloss_id,
+            }
+            for t in turns
+        ],
+    }

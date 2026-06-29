@@ -1,0 +1,115 @@
+.scorecard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--social-bg);
+}
+
+.overall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.overall-value {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+}
+.overall-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: 10px;
+  background: rgba(127, 127, 127, 0.08);
+}
+.metric-value {
+  font-size: 26px;
+  font-weight: 700;
+}
+.metric-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* バンド色 (good=緑, mid=橙, low=赤) */
+.good {
+  color: #16a34a;
+}
+.mid {
+  color: #d97706;
+}
+.low {
+  color: #dc2626;
+}
+
+.weak {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+.weak-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.weak-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+.weak-list .jp {
+  font-size: 18px;
+  font-weight: 700;
+}
+.weak-list .acc {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.all-good {
+  color: #16a34a;
+  font-weight: 600;
+  text-align: center;
+}
+
+.transcript {
+  font-size: 13px;
+  color: var(--text);
+  text-align: center;
+}
+.transcript .jp {
+  color: var(--text-h);
+  font-weight: 600;
+}

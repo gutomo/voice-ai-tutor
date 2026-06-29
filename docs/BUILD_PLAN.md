@@ -27,12 +27,14 @@
 
 ## Phase 2 — 音声パイプライン ＋ Azure発音採点
 **ゴール:** アップロードされた音声から発音スコアが返る。
-- [ ] 受信音声を ffmpeg で WAV(16k / mono / 16bit) に変換
-- [ ] Azure Speech STT（ja-JP）で文字起こし
-- [ ] Azure Pronunciation Assessment（ja-JP, scripted, 参照テキスト＝モデル文）
-- [ ] Accuracy / Fluency / Completeness ＋ 弱い音素リストを返す
-- [ ] サンプルWAVでユニットテスト（Azureはスタブ化、E2Eは1本だけ実呼び出しでよい）
-- **受け入れ:** 既知のモデル文に対し、復唱音声のスコアと弱点音素が取得できる。
+- [x] 受信音声を ffmpeg で WAV(16k / mono / 16bit) に変換（`app/audio.py`）
+- [x] Azure Speech STT（ja-JP）で文字起こし（scripted では認識結果 transcript を併せて返す）
+- [x] Azure Pronunciation Assessment（ja-JP, scripted, 参照テキスト＝モデル文）（`app/speech.py`）
+- [x] Accuracy / Fluency / Completeness ＋ 要練習リストを返す（ja-JP は音素名が無いため**単語**単位。`app/parsing.py`）
+- [x] サンプルWAVでユニットテスト（Azureはスタブ化。実呼び出しは `test_e2e_azure.py` を 1 本だけゲート）
+- [x] 追加: `POST /api/turn/{id}/score`、フロントに発音スコア表示（ScoreCard）、Dockerfile にランタイムlibs
+- [ ] 実 Azure (F0) で 1 回確認（鍵を `backend/.env` に入れて録音→採点）← 手動確認待ち
+- **受け入れ:** 既知のモデル文に対し、復唱音声のスコアと要練習の単語が取得できる。
 
 ## Phase 3 — 会話ループ ＋ ルーブリック採点（Bedrock Claude）
 **ゴール:** 介護シナリオの1レッスンが会話として成立し、採点される。

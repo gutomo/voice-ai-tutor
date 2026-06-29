@@ -1,0 +1,42 @@
+{
+  "RecognitionStatus": "Success",
+  "DisplayText": "おはようございます。体温を測りますね",
+  "NBest": [
+    {
+      "Confidence": 0.91,
+      "Lexical": "おはよう ございます 体温 を 測ります ね",
+      "Display": "おはようございます。体温を測りますね",
+      "PronunciationAssessment": {
+        "AccuracyScore": 82.0,
+        "FluencyScore": 88.0,
+        "CompletenessScore": 100.0,
+        "PronScore": 84.0
+      },
+      "Words": [
+        {
+          "Word": "おはよう",
+          "PronunciationAssessment": { "AccuracyScore": 92.0, "ErrorType": "None" },
+          "Phonemes": [
+            { "Phoneme": "o", "PronunciationAssessment": { "AccuracyScore": 95.0 } },
+            { "Phoneme": "h", "PronunciationAssessment": { "AccuracyScore": 90.0 } }
+          ]
+        },
+        {
+          "Word": "体温",
+          "PronunciationAssessment": { "AccuracyScore": 45.0, "ErrorType": "Mispronunciation" },
+          "Phonemes": [
+            { "Phoneme": "t", "PronunciationAssessment": { "AccuracyScore": 38.0 } },
+            { "Phoneme": "a", "PronunciationAssessment": { "AccuracyScore": 85.0 } }
+          ]
+        },
+        {
+          "Word": "を",
+          "PronunciationAssessment": { "AccuracyScore": 88.0, "ErrorType": "None" },
+          "Phonemes": [
+            { "Phoneme": "o", "PronunciationAssessment": { "AccuracyScore": 88.0 } }
+          ]
+        }
+      ]
+    }
+  ]
+}

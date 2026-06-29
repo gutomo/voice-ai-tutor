@@ -14,6 +14,16 @@ RUN npm run build
 FROM python:3.12-slim
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
+# ffmpeg: 音声を WAV へ変換 (必須)。
+# ca-certificates/libssl3/libasound2: Azure Speech SDK のネイティブ .so が実行時に必要
+# (これらが無いと import 時に 'cannot load libssl.so.3' で落ちる)。
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        ca-certificates \
+        libssl3 \
+        libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     PYTHONUNBUFFERED=1
