@@ -1,0 +1,50 @@
+# --- Secrets (絶対にコミットしない) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Terraform ---
+infra/.terraform/
+infra/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+
+# --- Python / backend (uv) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# --- Node / frontend (Vite + React) ---
+node_modules/
+frontend/dist/
+*.local
+.vite/
+
+# --- 音声・一時ファイル ---
+*.wav
+*.webm
+*.mp3
+*.m4a
+tmp/
+uploads/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

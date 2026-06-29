@@ -1,0 +1,17 @@
+# これは雛形です。コピーして terraform.tfvars を作り、実値を入れること。
+# 実値入りの terraform.tfvars は .gitignore する（秘密情報を含むため）。
+
+project     = "jp-tutor"
+environment = "demo"
+location    = "japaneast"
+
+# AWS（Bedrock + SES）
+aws_region            = "us-east-1"
+aws_access_key_id     = "AKIA..."                  # Bedrock + SES を許可した IAM キー
+aws_secret_access_key = "..."
+bedrock_model_id      = "anthropic.claude-..."     # Bedrock コンソールで正しいIDを確認
+email_sender          = "noreply@example.com"      # SES で検証済みのアドレス
+
+# PostgreSQL
+pg_admin_login    = "tutoradmin"
+pg_admin_password = "ChangeMe-StrongPassword!"
