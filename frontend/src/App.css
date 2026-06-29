@@ -1,0 +1,51 @@
+/* モバイルファースト。大きなタップ領域と読みやすい本文を基本にする。 */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: center;
+}
+
+.subtitle {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--social-bg);
+}
+
+.label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.status {
+  font-size: 18px;
+  font-weight: 600;
+}
+.status.ok {
+  color: #16a34a;
+}
+.status.error {
+  color: #dc2626;
+}
+.status.loading {
+  color: var(--text);
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--text);
+}

@@ -1,0 +1,19 @@
+# ビルドコンテキストから除外 (イメージを軽く保つ)
+.git
+.github
+docs
+infra
+**/.venv
+**/node_modules
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+*.env
+.env
+.env.*
+!.env.example
+**/*.wav
+**/*.webm
+README.md

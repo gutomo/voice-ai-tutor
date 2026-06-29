@@ -1,0 +1,11 @@
+# 行末を LF に統一する (CI は Linux、開発は Windows のため)
+* text=auto eol=lf
+
+# バイナリは変換しない
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.wav binary
+*.webm binary
+*.mp3 binary

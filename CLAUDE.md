@@ -24,27 +24,33 @@
 - バイリンガル: 説明UIは Bahasa Indonesia、学習対象は日本語
 
 ## リポジトリ構成
-> **現状はまだ Phase 0 前。** 実在するのは `CLAUDE.md` / `.clauderules` / `docs/` / `infra/` のみ。
-> backend/ frontend/ docker-compose.yml .env.example は Phase 0 で作成する（下記は完成形の目標構成）。
+> Phase 0（スキャフォールド）完了。下記はすべて実在する。
 ```
 .
 ├── CLAUDE.md           # これ（行動規範）
+├── README.md           # セットアップ・起動手順
 ├── .clauderules        # 文章スタイル（em ダッシュ禁止）
+├── .env.example        # 環境変数の雛形（コピーして backend/.env を作る）
+├── docker-compose.yml  # ローカルの Postgres（API は uv で直接起動）
+├── Dockerfile          # 本番用の単一コンテナ（フロントをビルド → FastAPI が SPA 配信）
+├── .dockerignore
+├── backend/            # FastAPI（app/main.py に /healthz・/api/health、app/config.py、tests/）
+├── frontend/           # React + Vite + TS（mobile-first、/api を :8000 へプロキシ）
 ├── docs/
-│   ├── DESIGN.md       # 設計書（UX・採点ロジック・ダッシュボード・デモ台本）  実在
-│   └── BUILD_PLAN.md   # フェーズ別タスク（着手前に必ず読む）  実在
-├── infra/              # Terraform（Azure Container Apps へデプロイ）  実在
-├── backend/            # FastAPI（API、音声処理、採点、メール）  ※Phase 0 で作成
-├── frontend/           # React（録音ページ、教師ダッシュボード）  ※Phase 0 で作成
-├── docker-compose.yml  # ローカルの Postgres など  ※Phase 0 で作成
-└── .env.example        # ※Phase 0 で作成
+│   ├── DESIGN.md       # 設計書（UX・採点ロジック・ダッシュボード・デモ台本）
+│   └── BUILD_PLAN.md   # フェーズ別タスク（着手前に必ず読む）
+├── infra/              # Terraform（Azure Container Apps へデプロイ）
+└── .github/workflows/  # CI（ruff・black・pytest／npm build）
 ```
 
-## 開発コマンド（仮。Phase 0で確定させ、ここを更新すること）
-- `docker compose up -d` … Postgres 起動
-- `cd backend && uv sync && uv run uvicorn app.main:app --reload` … API 起動
-- `cd frontend && npm install && npm run dev` … フロント起動
-- `cd backend && uv run pytest` … テスト
+## 開発コマンド（Phase 0 で確定）
+- `docker compose up -d` … Postgres 起動（ローカルは DB のみ compose、API は uv で直接起動）
+- `cd backend && uv sync && uv run uvicorn app.main:app --reload` … API 起動（→ :8000）
+- `cd frontend && npm install && npm run dev` … フロント起動（→ :5173、`/api` を :8000 へプロキシ）
+- `cd backend && uv run pytest` … テスト（単体: `uv run pytest tests/test_health.py::test_healthz`）
+- `cd backend && uv run ruff check . && uv run black .` … lint / format
+- `cd frontend && npm run build` … フロントの型チェック＋本番ビルド（CI と同じ）
+- ヘルス確認: `curl http://localhost:8000/healthz` → `{"status":"ok"}`
 
 ## 環境変数（.env.example を参照）
 - `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`

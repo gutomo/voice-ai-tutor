@@ -8,12 +8,13 @@
 
 ## Phase 0 — スキャフォールド
 **ゴール:** 空のアプリが起動し、health が通る。
-- [ ] リポジトリ構成を作成（backend/ frontend/ docs/ infra/）
-- [ ] backend: FastAPI 雛形 ＋ `GET /healthz`
-- [ ] frontend: Vite + React + TS 雛形（モバイル幅で表示確認）
-- [ ] docker-compose.yml に Postgres
-- [ ] `.env.example` を作成（CLAUDE.md の変数一覧に対応）
-- [ ] ffmpeg がコンテナ/ローカルに存在することを確認
+- [x] リポジトリ構成を作成（backend/ frontend/ docs/ infra/）
+- [x] backend: FastAPI 雛形 ＋ `GET /healthz`（＋ `/api/health`）
+- [x] frontend: Vite + React + TS 雛形（モバイル幅で表示確認、`/api` をプロキシ）
+- [x] docker-compose.yml に Postgres
+- [x] `.env.example` を作成（CLAUDE.md の変数一覧に対応）
+- [x] ffmpeg がコンテナ/ローカルに存在することを確認
+- [x] 追加: 単一コンテナ Dockerfile、GitHub Actions CI、README
 - **受け入れ:** `uvicorn` と `npm run dev` が両方起動し、`/healthz` が 200 を返す。
 
 ## Phase 1 — Web録音ページ（デモの入口）
