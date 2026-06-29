@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # データベース
     database_url: str = "postgresql://tutor:tutor@localhost:5432/tutor"
 
+    # アップロードした音声の保存先 (相対パスは backend/ 起点に解決する)
+    upload_dir: str = "uploads"
+
     # メール送信元 (SES で検証済みのアドレス)
     email_sender: str | None = None
 

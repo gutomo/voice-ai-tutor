@@ -14,7 +14,11 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.turns import router as turns_router
+
 app = FastAPI(title="音声AI日本語チューター API", version="0.1.0")
+
+app.include_router(turns_router)
 
 
 @app.get("/healthz")

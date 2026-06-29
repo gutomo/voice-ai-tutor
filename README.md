@@ -8,7 +8,7 @@ LPK (インドネシアの職業訓練機関) 向けの、音声AI日本語チ�
 - フェーズ別の実行手順: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md)
 - 行動規範 (Claude Code 用): [CLAUDE.md](CLAUDE.md)
 
-現在のステータス: **Phase 0 (スキャフォールド) 完了**。空のアプリが起動し、`/healthz` が通る。
+現在のステータス: **Phase 1 (Web録音ページ) 完了**。スマホのブラウザでタップ録音 → アップロード → 再生できる。
 
 ## 構成
 
@@ -62,6 +62,35 @@ uv run ruff check . && uv run black .          # lint / format
 
 `.env.example` をコピーして `backend/.env` を作る (秘密情報はコミット禁止)。
 Phase 0 ではどれも未設定でアプリは起動する。各 Phase で必要になったら埋める。
+
+## 録音ページ (Phase 1)
+
+トップページが録音UIになっている。フロー:
+
+1. 大きな録音ボタンをタップ → マイク許可 → 録音 (WebM/Opus)。
+2. もう一度タップで停止 → その場で再生して確認。
+3. 「Kirim」で `POST /api/turn` にアップロード → サーバに保存され、サーバ側の音声も再生できる。
+
+保存先は `backend/uploads/`（`.gitignore` 済み）。Phase 2 でこの音声を ffmpeg → Azure 発音評価へ渡す。
+
+### 実機 (Android Chrome) で試す
+
+マイク API (`getUserMedia`) は**セキュアコンテキスト限定**。`localhost` では動くが、スマホから LAN の
+`http://192.168.x.x:5173` を開くとマイクがブロックされる。そこで cloudflared で https URL を作る。
+
+```bash
+# 一度だけ: インストール (Windows)
+winget install Cloudflare.cloudflared
+
+# バックエンド・フロントを起動した状態で、別ターミナルで:
+cloudflared tunnel --url http://localhost:5173
+# -> https://<ランダム>.trycloudflare.com が出る。これをスマホの Chrome で開く。
+```
+
+スマホでマイクを許可 → 録音 → 「Kirim」→ 「Berhasil terkirim ✓」と表示されればOK。
+
+代替: オフラインで済ませたい場合は `@vitejs/plugin-basic-ssl` を入れて `npm run dev` を https 化する
+（スマホで証明書の警告をタップで通す必要がある）。
 
 ## デプロイ
 

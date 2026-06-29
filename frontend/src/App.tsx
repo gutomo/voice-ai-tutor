@@ -1,47 +1,37 @@
 import { useEffect, useState } from 'react'
+import { Recorder } from './Recorder'
 import './App.css'
 
-// Phase 0: バックエンドとの疎通を画面で確認するだけの最小ページ。
-// 説明UIは Bahasa Indonesia、学習対象 (Phase 1 以降) は日本語。
+// 説明UIは Bahasa Indonesia、学習対象は日本語。
 type Health = { status: string; service?: string }
-
-type ConnState =
-  | { kind: 'loading' }
-  | { kind: 'ok'; data: Health }
-  | { kind: 'error'; message: string }
+type ConnState = 'loading' | 'ok' | 'error'
 
 function App() {
-  const [conn, setConn] = useState<ConnState>({ kind: 'loading' })
+  const [conn, setConn] = useState<ConnState>('loading')
 
   useEffect(() => {
     fetch('/api/health')
-      .then(async (res) => {
+      .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return (await res.json()) as Health
+        return res.json() as Promise<Health>
       })
-      .then((data) => setConn({ kind: 'ok', data }))
-      .catch((err: unknown) =>
-        setConn({ kind: 'error', message: err instanceof Error ? err.message : 'gagal' }),
-      )
+      .then(() => setConn('ok'))
+      .catch(() => setConn('error'))
   }, [])
 
   return (
     <main className="app">
-      <h1>Tutor Bahasa Jepang AI</h1>
-      <p className="subtitle">Demo untuk LPK · 介護 日本語</p>
+      <header className="app-header">
+        <h1>Tutor Bahasa Jepang AI</h1>
+        <p className="subtitle">Demo untuk LPK · 介護 日本語</p>
+        <span className={`chip ${conn}`}>
+          backend: {conn === 'ok' ? 'terhubung' : conn === 'loading' ? '…' : 'terputus'}
+        </span>
+      </header>
 
-      <section className="card">
-        <span className="label">Status backend</span>
-        {conn.kind === 'loading' && <span className="status loading">memuat…</span>}
-        {conn.kind === 'ok' && (
-          <span className="status ok">terhubung ✓ ({conn.data.service ?? conn.data.status})</span>
-        )}
-        {conn.kind === 'error' && (
-          <span className="status error">gagal terhubung: {conn.message}</span>
-        )}
-      </section>
+      <Recorder />
 
-      <p className="hint">Phase 0 · scaffold. Halaman rekam suara menyusul di Phase 1.</p>
+      <p className="hint">Phase 1 · rekam → kirim → putar ulang.</p>
     </main>
   )
 }

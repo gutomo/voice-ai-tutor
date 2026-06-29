@@ -7,6 +7,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
     "pydantic-settings>=2.6",
+    "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
@@ -24,6 +25,19 @@ target-version = "py312"
 [tool.ruff.lint]
 # pyflakes, pycodestyle, isort, bugbear, pyupgrade
 select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI の依存性注入は引数デフォルトでの呼び出しが正規の書き方なので B008 を許可する
+extend-immutable-calls = [
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Depends",
+]
 
 [tool.black]
 line-length = 100

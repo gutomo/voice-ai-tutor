@@ -19,10 +19,10 @@
 
 ## Phase 1 — Web録音ページ（デモの入口）
 **ゴール:** スマホのブラウザでタップ録音 → サーバへアップロード → 再生できる。
-- [ ] モバイルファーストの録音UI（大きな録音ボタン、録音中インジケータ、再生ボタン）
-- [ ] MediaRecorder で録音（`audio/webm;codecs=opus`）
-- [ ] `POST /api/turn`（multipart）で音声を送信
-- [ ] Android Chrome の実機で確認（マイク許可 → 録音 → アップロード）
+- [x] モバイルファーストの録音UI（大きな録音ボタン、録音中インジケータ、再生ボタン）
+- [x] MediaRecorder で録音（`audio/webm;codecs=opus`、非対応端末は既定にフォールバック）
+- [x] `POST /api/turn`（multipart）で音声を送信し、サーバに保存（＋ `GET /api/turn/{id}/audio` で再生）
+- [ ] Android Chrome の実機で確認（マイク許可 → 録音 → アップロード）← cloudflared 経由でテスト可能（README 参照）。手動確認待ち
 - **受け入れ:** 実機で録音 → アップロード成功 → サーバに保存される。
 
 ## Phase 2 — 音声パイプライン ＋ Azure発音採点
