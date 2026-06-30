@@ -1,0 +1,513 @@
+/* 教師ダッシュボード (Phase 5)。学習者アプリより広い卓上レイアウト。 */
+.dash {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 18px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+}
+
+.dash-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dash-title {
+  font-size: 24px;
+  margin: 0;
+}
+.dash-sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text);
+}
+.dash-refresh {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+.dash-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty {
+  color: var(--text);
+  font-size: 14px;
+  text-align: center;
+  padding: 16px;
+}
+.muted {
+  color: var(--text);
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+/* バンド色 (good=緑, mid=橙, low=赤) */
+.good {
+  color: #16a34a;
+}
+.mid {
+  color: #d97706;
+}
+.low {
+  color: #dc2626;
+}
+
+/* --- 集計カード --- */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--social-bg);
+}
+.stat-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-h);
+}
+.stat-value.good {
+  color: #16a34a;
+}
+.stat-value.low {
+  color: #dc2626;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* --- 要フォローのバナー --- */
+.flag-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+}
+.flag-sub {
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+/* --- パネル --- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--social-bg);
+}
+.panel-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+/* --- 棒グラフ (分布) --- */
+.barchart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 140px;
+  position: relative;
+}
+.bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+.bar-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-h);
+  min-height: 16px;
+}
+.bar-track {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.bar-fill {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 6px 6px 0 0;
+  background: #9ca3af;
+  transition: height 0.5s ease;
+}
+.bar-fill.good {
+  background: #16a34a;
+}
+.bar-fill.mid {
+  background: #d97706;
+}
+.bar-fill.low {
+  background: #dc2626;
+}
+.bar-label {
+  font-size: 11px;
+  color: var(--text);
+}
+.bar-unit {
+  position: absolute;
+  right: 0;
+  bottom: -18px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+/* --- スパークライン (推移) --- */
+.sparkline {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.spark-area {
+  fill: rgba(37, 99, 235, 0.12);
+  stroke: none;
+}
+.spark-line {
+  fill: none;
+  stroke: #2563eb;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.spark-dot {
+  fill: #2563eb;
+}
+.spark-threshold {
+  stroke: #dc2626;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+.spark-last {
+  fill: var(--text-h);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* --- コホート表 --- */
+.cohort-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.cohort-table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.cohort-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.cohort-row:hover,
+.cohort-row:focus-visible {
+  background: rgba(127, 127, 127, 0.08);
+  outline: none;
+}
+.cohort-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.td-name {
+  font-weight: 600;
+  color: var(--text-h);
+}
+.td-level {
+  color: var(--text);
+  white-space: nowrap;
+}
+.jlpt {
+  color: var(--text);
+}
+.passline-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.passline-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+/* 到達度バー */
+.passline-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.18);
+  overflow: hidden;
+}
+.passline-bar.mini {
+  width: 90px;
+}
+.passline-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+.passline-fill.good {
+  background: #16a34a;
+}
+.passline-fill.mid {
+  background: #d97706;
+}
+.passline-fill.low {
+  background: #dc2626;
+}
+
+/* ステータスチップ */
+.status-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-chip.good {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+}
+.status-chip.mid {
+  color: #b45309;
+  background: rgba(217, 119, 6, 0.12);
+}
+.status-chip.low {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.12);
+}
+
+/* --- 学習者ビュー --- */
+.back-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+}
+.lv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lv-name {
+  margin: 0;
+  font-size: 22px;
+  color: var(--text-h);
+}
+.lv-level {
+  font-size: 14px;
+  color: var(--text);
+}
+.lv-passline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.lv-passline-num {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* 発音ヒートマップ */
+.heatmap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.heat-cell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+.heat-cell.good {
+  background: rgba(22, 163, 74, 0.14);
+  color: #15803d;
+}
+.heat-cell.mid {
+  background: rgba(217, 119, 6, 0.16);
+  color: #b45309;
+}
+.heat-cell.low {
+  background: rgba(220, 38, 38, 0.16);
+  color: #b91c1c;
+}
+.heat-word {
+  font-size: 16px;
+  font-weight: 700;
+}
+.heat-acc {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.heat-count {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* 会話ログ */
+.turn-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.turn-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.turn-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.turn-no {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.turn-score {
+  font-size: 18px;
+  font-weight: 800;
+}
+.turn-score.good {
+  color: #16a34a;
+}
+.turn-score.mid {
+  color: #d97706;
+}
+.turn-score.low {
+  color: #dc2626;
+}
+.turn-transcript {
+  margin: 0;
+}
+.turn-transcript .jp {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.turn-pron {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pron-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(127, 127, 127, 0.08);
+}
+.pron-chip-val {
+  font-size: 16px;
+  font-weight: 700;
+}
+.pron-chip.good .pron-chip-val {
+  color: #16a34a;
+}
+.pron-chip.mid .pron-chip-val {
+  color: #d97706;
+}
+.pron-chip.low .pron-chip-val {
+  color: #dc2626;
+}
+.pron-chip-label {
+  font-size: 11px;
+  color: var(--text);
+}
+.turn-rubric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.turn-rubric .task {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+.turn-rubric .task.ok {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+}
+.turn-rubric .task.no {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.1);
+}
+.turn-feedback {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.turn-model {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.turn-model .jp {
+  color: var(--text-h);
+  font-weight: 600;
+}
+.turn-audio {
+  width: 100%;
+  height: 36px;
+}
+
+@media (max-width: 560px) {
+  .stat-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .passline-bar.mini {
+    width: 56px;
+  }
+}
