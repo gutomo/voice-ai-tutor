@@ -33,7 +33,7 @@
 - [x] Accuracy / Fluency / Completeness ＋ 要練習リストを返す（ja-JP は音素名が無いため**単語**単位。`app/parsing.py`）
 - [x] サンプルWAVでユニットテスト（Azureはスタブ化。実呼び出しは `test_e2e_azure.py` を 1 本だけゲート）
 - [x] 追加: `POST /api/turn/{id}/score`、フロントに発音スコア表示（ScoreCard）、Dockerfile にランタイムlibs
-- [ ] 実 Azure (F0) で 1 回確認（鍵を `backend/.env` に入れて録音→採点）← 手動確認待ち
+- [x] 実 Azure (F0) で 1 回確認（鍵を `backend/.env` に格納）。TTS で参照文を合成→`score_turn_sync` で採点する自動往復で疎通確認。結果: transcript 一致, accuracy 95 / fluency 80 / completeness 100 / pron 87
 - **受け入れ:** 既知のモデル文に対し、復唱音声のスコアと要練習の単語が取得できる。
 
 ## Phase 3 — 会話ループ ＋ ルーブリック採点（Bedrock Claude）
