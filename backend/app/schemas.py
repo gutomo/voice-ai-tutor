@@ -4,6 +4,7 @@ ja-JP は Prosody を返さないので prosody フィールドは持たない�
 学習者向けの主役は weak_words (音素名は ja-JP では不透明なため)。
 """
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -113,6 +114,8 @@ class EvaluateRequest(BaseModel):
     transcript: str | None = None
     # roleplay の文脈: 直前の利用者役の発話 (省略時はシナリオの口火を使う)
     patient_text: str | None = None
+    # 指定すると採点結果を DB に保存し、学習者プロファイルを更新する (Phase 4)。
+    session_id: int | None = None
 
 
 class TurnEvaluation(BaseModel):
@@ -123,6 +126,76 @@ class TurnEvaluation(BaseModel):
     pronunciation: PronunciationResult | None = None
     rubric: RubricScore | None = None
     combined: CombinedScore
+    # session_id を渡して永続化した場合のみ、更新後のプロファイルを返す (money shot)。
+    profile: "LearnerProfileOut | None" = None
+
+
+# --- Phase 4: 永続化 (学習者 / セッション / プロファイル) ---
+
+
+class LearnerCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    native_lang: str = "id"
+    target_sector: str = "kaigo"
+
+
+class LearnerProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    learner_id: int
+    cefr_estimate: str | None = None
+    jlpt_estimate: str | None = None
+    kaigo_passline_pct: float = 0.0
+    updated_at: datetime | None = None
+
+
+class LearnerOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    native_lang: str
+    target_sector: str
+    created_at: datetime
+    profile: LearnerProfileOut | None = None
+
+
+class SessionCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    learner_id: int
+    scenario: str = "kaigo_morning"
+
+
+class SessionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    learner_id: int
+    scenario: str
+    started_at: datetime
+    ended_at: datetime | None = None
+    summary_sent_at: datetime | None = None
+
+
+class TurnOut(BaseModel):
+    """保存済みターン (履歴表示・教師ダッシュボード用)。"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    session_id: int
+    turn_no: int | None = None
+    transcript: str | None = None
+    pron_accuracy: float | None = None
+    pron_fluency: float | None = None
+    pron_completeness: float | None = None
+    weak_phonemes: list[Any] | None = None
+    rubric: dict[str, Any] | None = None
+    combined_score: float | None = None
+    created_at: datetime
 
 
 class TtsRequest(BaseModel):
@@ -130,3 +203,7 @@ class TtsRequest(BaseModel):
 
     text: str
     voice: str | None = None
+
+
+# TurnEvaluation.profile は後方で定義する LearnerProfileOut を前方参照するので解決する。
+TurnEvaluation.model_rebuild()

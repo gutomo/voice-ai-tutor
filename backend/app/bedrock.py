@@ -80,7 +80,11 @@ def _converse(
     except Exception as e:  # noqa: BLE001 - boto3 例外を import せず横断的に扱う
         name = type(e).__name__
         retriable = any(k in name for k in ("Throttling", "Timeout", "ServiceUnavailable"))
-        raise BedrockError(f"Bedrock 呼び出しに失敗しました: {name}", retriable=retriable) from e
+        # boto3 のメッセージ本文 (str(e)) を残す。原因 (例: 推論プロファイル要求) を握りつぶさない。
+        # 認証情報は含まれないので安全。クライアントへは turns.py が汎用 502 にして返す。
+        raise BedrockError(
+            f"Bedrock 呼び出しに失敗しました ({name}): {e}", retriable=retriable
+        ) from e
 
     try:
         return resp["output"]["message"]["content"][0]["text"]

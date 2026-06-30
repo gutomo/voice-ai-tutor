@@ -10,6 +10,8 @@ dependencies = [
     "python-multipart>=0.0.32",
     "azure-cognitiveservices-speech>=1.40,<1.46",
     "boto3>=1.35",
+    "sqlalchemy>=2.0",
+    "psycopg2-binary>=2.9",
 ]
 
 [dependency-groups]

@@ -12,13 +12,15 @@ from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 
-from app import bedrock, combine, scenarios, scoring, tts
+from app import bedrock, combine, persistence, scenarios, scoring, tts
 from app.audio import AudioConversionError
 from app.bedrock import BedrockError
 from app.config import settings
+from app.persistence import UnknownSessionError
 from app.schemas import (
     ConversationReplyRequest,
     EvaluateRequest,
+    LearnerProfileOut,
     PatientLine,
     PronunciationResult,
     RubricScore,
@@ -276,8 +278,35 @@ async def evaluate_turn(turn_id: str, body: EvaluateRequest | None = None) -> Tu
 
     req = body or EvaluateRequest()
     if req.mode == "scripted":
-        return await _evaluate_scripted(turn_id, src, req)
-    return await _evaluate_roleplay(turn_id, src, req)
+        evaluation = await _evaluate_scripted(turn_id, src, req)
+    else:
+        evaluation = await _evaluate_roleplay(turn_id, src, req)
+
+    if req.session_id is not None:
+        evaluation.profile = await _persist_turn(turn_id, src, req, evaluation)
+    return evaluation
+
+
+async def _persist_turn(
+    turn_id: str, src: Path, req: EvaluateRequest, evaluation: TurnEvaluation
+) -> LearnerProfileOut:
+    """採点結果を DB に保存し、更新後の学習者プロファイルを返す (Phase 4)。"""
+    pron = evaluation.pronunciation
+    transcript = pron.transcript if pron else req.transcript
+    try:
+        return await run_in_threadpool(
+            persistence.record_turn,
+            req.session_id,
+            turn_id,
+            turn_no=req.turn_no,
+            audio_path=str(src),
+            transcript=transcript,
+            pron=pron,
+            rubric=evaluation.rubric,
+            combined=evaluation.combined,
+        )
+    except UnknownSessionError as e:
+        raise HTTPException(status_code=404, detail="セッションが見つかりません") from e
 
 
 async def _evaluate_scripted(turn_id: str, src: Path, req: EvaluateRequest) -> TurnEvaluation:

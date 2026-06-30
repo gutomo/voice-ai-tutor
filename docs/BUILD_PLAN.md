@@ -44,8 +44,8 @@
 - [x] スコア合成：発音(A) ＋ 会話(B×20) ＋ タスク達成(C) → 学習者スコア＋合格ライン到達度（`app/combine.py`）
 - [x] 返信音声を Azure TTS（ja-JP NanamiNeural）で生成（`app/tts.py`）。`POST /api/tts`、フロントで再生
 - [x] 追加: `POST /api/turn/{id}/evaluate`（scripted=発音 / roleplay=STT二段＋ルーブリック＋合成）、フロントに会話タブ＋RubricCard、ユニットテスト（外部APIはスタブ）、実呼び出しは `test_e2e_bedrock.py` を 1 本だけゲート
-- [ ] 実 Bedrock で 1 回確認（鍵 ＋ `BEDROCK_MODEL_ID` を `backend/.env` に）。`RUN_BEDROCK_E2E=1` で疎通確認。手動確認待ち
-- **受け入れ:** 5から6ターンを完走でき、各ターンで構造化スコアが返る（発音ドリル5フレーズ＋ロールプレイ1ターン。スタブ下のユニットテストで往復を検証済み）。
+- [x] 実 Bedrock で 1 回確認。`RUN_BEDROCK_E2E=1 uv run pytest tests/test_e2e_bedrock.py` → 2 passed（会話生成・ルーブリック採点の往復OK）。**注意: 基盤モデルID `anthropic.claude-sonnet-4-6` は on-demand 不可（ValidationException）。推論プロファイルID `us.anthropic.claude-sonnet-4-6` を `BEDROCK_MODEL_ID` に設定する**
+- **受け入れ:** 5から6ターンを完走でき、各ターンで構造化スコアが返る（発音ドリル5フレーズ＋ロールプレイ1ターン。実 Bedrock で往復検証済み）。
 
 ルーブリック採点の出力スキーマ（Claude にこの形式のJSONだけを返させる）:
 ```json
@@ -65,10 +65,12 @@ grammar / vocabulary / politeness は 0 から 5。feedback_ja は日本語、fe
 
 ## Phase 4 — 永続化 ＋ 合格ライン推定
 **ゴール:** 学習者の履歴が貯まり、合格ライン到達度が出る。
-- [ ] Postgres スキーマ作成（下記）
-- [ ] 各ターンのスコアを保存し、学習者プロファイルを更新
-- [ ] 介護日本語評価試験 / JFT-Basic の合格ライン到達度(%) を推定して保存（`docs/DESIGN.md` の §3 の簡易ロジック）
-- **受け入れ:** 同一学習者の複数ターンが蓄積し、到達度が更新される。
+- [x] Postgres スキーマ作成（SQLAlchemy 2.0 ORM `app/models.py`：learners / sessions / turns / learner_profile。同期エンジン `app/db.py` は本番 Postgres・テスト SQLite。weak_phonemes と rubric は jsonb／SQLite では JSON にフォールバック。`init_db()` の create_all で用意し Alembic は後回し）
+- [x] 各ターンのスコアを保存し、学習者プロファイルを更新（サービス層 `app/persistence.py` の `record_turn`：turn_id を主キーに upsert → 学習者の全ターンからプロファイル再計算。`/api/turn/{id}/evaluate` に `session_id` を渡すと保存し更新後プロファイルを返す＝money shot）
+- [x] 介護日本語評価試験 の合格ライン到達度(%) を推定して保存（純関数 `app/profile.py`：combined_score 平均 − オフセットで passline、CEFR は直近ルーブリック優先。係数は `app/combine.py` に集約）
+- [x] 追加: 学習者・セッションのエンドポイント（`app/learners.py`：`/api/learners`・`/api/sessions`・`/api/learners/{id}/turns`）、`main.py` の lifespan で起動時 `init_db`（DB 未接続でも起動は継続）、ユニットテスト（`test_persistence.py`／`test_profile.py`／`test_learners_endpoint.py`、DB は in-memory SQLite・外部 API はスタブ）
+- [x] 実 Postgres（docker compose の postgres:16）で 1 回確認。永続化層を通した往復スモークで autoincrement・timezone・JSONB ラウンドトリップ・upsert・到達度更新を検証（69→72→上書きで 55）
+- **受け入れ:** 同一学習者の複数ターンが蓄積し、到達度が更新される（SQLite ユニットテスト ＋ 実 Postgres スモークで検証済み）。
 
 データモデル（最小）:
 ```
