@@ -30,6 +30,50 @@ export type ScenarioTurn = { turn_no: number; reference_text: string; gloss_id: 
 
 export type TurnMeta = { scenario?: string; turnNo?: number }
 
+// --- Phase 3: 会話ループ + ルーブリック採点 ---
+
+export type ScenarioMeta = {
+  scenario: string
+  title_ja: string
+  title_id: string
+  turns: ScenarioTurn[]
+  persona: { name: string } | null
+  roleplay: { opening_ja: string; opening_gloss_id: string } | null
+}
+
+export type ConversationMessage = { role: 'assistant' | 'user'; text: string }
+export type PatientLine = { utterance_ja: string; gloss_id: string }
+
+export type RubricScore = {
+  task_completed: boolean
+  task_reason: string
+  grammar: number
+  vocabulary: number
+  politeness: number
+  cefr_estimate: string
+  feedback_ja: string
+  feedback_id: string
+  model_answer_ja: string
+}
+
+export type CombinedScore = {
+  pron_score: number | null
+  rubric_score: number | null
+  task_completed: boolean | null
+  combined_score: number
+  cefr_estimate: string | null
+  jlpt_estimate: string | null
+  kaigo_passline_pct: number
+}
+
+export type TurnEvaluation = {
+  turn_id: string
+  mode: 'scripted' | 'roleplay'
+  pronunciation: PronunciationResult | null
+  rubric: RubricScore | null
+  combined: CombinedScore
+}
+
 // HTTP ステータスを保持するエラー (フロントが 503/422 を出し分けられるように)。
 export class ApiError extends Error {
   status: number
@@ -88,4 +132,63 @@ export async function getScenarioTurns(scenario: string): Promise<ScenarioTurn[]
   if (!res.ok) throw await parseError(res)
   const body = (await res.json()) as { turns: ScenarioTurn[] }
   return body.turns
+}
+
+// シナリオの全メタ (利用者役・ロールプレイの口火を含む)。
+export async function getScenario(scenario: string): Promise<ScenarioMeta> {
+  const res = await fetch(`/api/scenario/${scenario}`)
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as ScenarioMeta
+}
+
+// 利用者役 (例: 田中さん) の次の発話を生成する。
+export async function conversationReply(
+  scenario: string,
+  history: ConversationMessage[] = [],
+): Promise<PatientLine> {
+  const res = await fetch('/api/conversation/reply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scenario, history }),
+  })
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as PatientLine
+}
+
+export type EvaluateBody = {
+  mode?: 'scripted' | 'roleplay'
+  scenario?: string
+  turnNo?: number
+  transcript?: string
+  patientText?: string
+}
+
+// 1ターンを統合評価する (scripted=発音、roleplay=STT＋ルーブリック＋合成)。
+export async function evaluateTurn(turnId: string, body: EvaluateBody = {}): Promise<TurnEvaluation> {
+  const res = await fetch(`/api/turn/${turnId}/evaluate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mode: body.mode ?? 'scripted',
+      scenario: body.scenario,
+      turn_no: body.turnNo,
+      transcript: body.transcript,
+      patient_text: body.patientText,
+    }),
+  })
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as TurnEvaluation
+}
+
+// 日本語テキストを Azure TTS で合成し、再生用の object URL を返す。
+// 呼び出し側は使い終わったら URL.revokeObjectURL すること。
+export async function synthesizeTtsUrl(text: string, voice?: string): Promise<string> {
+  const res = await fetch('/api/tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, voice }),
+  })
+  if (!res.ok) throw await parseError(res)
+  const blob = await res.blob()
+  return URL.createObjectURL(blob)
 }

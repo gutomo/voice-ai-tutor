@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react'
 import {
   ApiError,
-  getScenarioTurns,
-  scoreTurn,
+  evaluateTurn,
+  getScenario,
+  synthesizeTtsUrl,
   uploadTurn,
-  type PronunciationResult,
-  type ScenarioTurn,
+  type TurnEvaluation,
 } from './api'
+import { RubricCard } from './RubricCard'
 import { ScoreCard } from './ScoreCard'
 import { useRecorder } from './useRecorder'
 import './Recorder.css'
 
-// 介護「朝の声かけ」のモデル文を順に復唱するドリル (DESIGN §2 Step 3)。
+// 介護「朝の声かけ」のロールプレイ1ターン (DESIGN §2 Step 4)。
+// 利用者役 (田中さん) の口火に、学習者が音声で応答 → STT＋ルーブリック採点＋合成。
 const SCENARIO = 'kaigo_morning'
-const FALLBACK_TURNS: ScenarioTurn[] = [
-  { turn_no: 1, reference_text: 'おはようございます。よく眠れましたか', gloss_id: '' },
-]
+const FALLBACK_OPENING = 'ああ、おはよう…なんだか今日は少し寒いねえ'
 
 function formatElapsed(ms: number): string {
   const total = Math.floor(ms / 1000)
@@ -28,28 +28,43 @@ type Flow =
   | { kind: 'idle' }
   | { kind: 'uploading' }
   | { kind: 'scoring' }
-  | { kind: 'done'; result: PronunciationResult }
+  | { kind: 'done'; result: TurnEvaluation }
   | { kind: 'error'; message: string }
 
-export function Recorder() {
+export function RolePlay() {
   const rec = useRecorder()
   const [flow, setFlow] = useState<Flow>({ kind: 'idle' })
-  const [turns, setTurns] = useState<ScenarioTurn[]>(FALLBACK_TURNS)
-  const [index, setIndex] = useState(0)
+  const [opening, setOpening] = useState<string>(FALLBACK_OPENING)
+  const [openingGloss, setOpeningGloss] = useState<string>('')
+  const [ttsBusy, setTtsBusy] = useState(false)
 
-  // モデル文をサーバから取得 (失敗時はフォールバック)。
   useEffect(() => {
-    getScenarioTurns(SCENARIO)
-      .then((t) => {
-        if (t.length) setTurns(t)
+    getScenario(SCENARIO)
+      .then((meta) => {
+        if (meta.roleplay) {
+          setOpening(meta.roleplay.opening_ja)
+          setOpeningGloss(meta.roleplay.opening_gloss_id)
+        }
       })
       .catch(() => {
         /* フォールバックのまま */
       })
   }, [])
 
-  const current = turns[index] ?? turns[0]
-  const isLast = index >= turns.length - 1
+  // 日本語テキストを TTS で合成して再生する (利用者役の口火・模範応答)。
+  const playJa = async (text: string) => {
+    setTtsBusy(true)
+    try {
+      const url = await synthesizeTtsUrl(text)
+      const audio = new Audio(url)
+      audio.onended = () => URL.revokeObjectURL(url)
+      await audio.play()
+    } catch {
+      /* TTS 未設定でも会話自体は進められるので黙って無視 */
+    } finally {
+      setTtsBusy(false)
+    }
+  }
 
   const onToggle = () => {
     if (rec.status === 'recording') rec.stop()
@@ -61,20 +76,17 @@ export function Recorder() {
     rec.reset()
   }
 
-  const onNext = () => {
-    setIndex((i) => Math.min(i + 1, turns.length - 1))
-    setFlow({ kind: 'idle' })
-    rec.reset()
-  }
-
-  // 送信 → アップロード → そのまま自動採点。
   const onSend = async () => {
     if (!rec.blob) return
     setFlow({ kind: 'uploading' })
     try {
-      const turn = await uploadTurn(rec.blob, { scenario: SCENARIO, turnNo: current.turn_no })
+      const turn = await uploadTurn(rec.blob, { scenario: SCENARIO })
       setFlow({ kind: 'scoring' })
-      const result = await scoreTurn(turn.turn_id, { scenario: SCENARIO, turnNo: current.turn_no })
+      const result = await evaluateTurn(turn.turn_id, {
+        mode: 'roleplay',
+        scenario: SCENARIO,
+        patientText: opening,
+      })
       setFlow({ kind: 'done', result })
     } catch (err: unknown) {
       setFlow({ kind: 'error', message: errorMessage(err) })
@@ -97,14 +109,21 @@ export function Recorder() {
 
   return (
     <section className="recorder">
-      <span className="progress">
-        Frase {index + 1}/{turns.length}
-      </span>
+      <div className="patient-line">
+        <span className="label">田中さん (penghuni)</span>
+        <p className="jp">「{opening}」</p>
+        {openingGloss && <p className="gloss">{openingGloss}</p>}
+        <button
+          type="button"
+          className="btn secondary"
+          onClick={() => void playJa(opening)}
+          disabled={ttsBusy}
+        >
+          {ttsBusy ? '…' : '🔊 Dengarkan'}
+        </button>
+      </div>
 
-      <p className="rec-prompt">
-        Tekan tombol, lalu ucapkan: <span className="jp">「{current.reference_text}」</span>
-        {current.gloss_id && <span className="gloss-inline">{current.gloss_id}</span>}
-      </p>
+      <p className="rec-prompt">Jawab dengan sopan dan sesuai situasi.</p>
 
       <button
         type="button"
@@ -121,7 +140,7 @@ export function Recorder() {
             <span className="dot" /> merekam… {formatElapsed(rec.elapsedMs)}
           </span>
         )}
-        {rec.status === 'idle' && <span>Tekan untuk mulai merekam</span>}
+        {rec.status === 'idle' && <span>Tekan untuk menjawab</span>}
         {hasRecording && flow.kind !== 'done' && (
           <span>Rekaman selesai · {formatElapsed(rec.elapsedMs)}</span>
         )}
@@ -130,9 +149,8 @@ export function Recorder() {
 
       {hasRecording && flow.kind !== 'done' && rec.blobUrl && (
         <div className="rec-playback">
-          <span className="label">Dengarkan rekaman Anda</span>
+          <span className="label">Dengarkan jawaban Anda</span>
           <audio controls src={rec.blobUrl} />
-
           <div className="rec-actions">
             <button type="button" className="btn secondary" onClick={onRetry} disabled={busy}>
               Ulangi
@@ -157,20 +175,15 @@ export function Recorder() {
 
       {flow.kind === 'done' && (
         <>
-          <ScoreCard result={flow.result} />
-          <div className="rec-actions">
-            <button type="button" className="btn secondary" onClick={onRetry}>
-              Rekam lagi
-            </button>
-            {!isLast && (
-              <button type="button" className="btn primary" onClick={onNext}>
-                Frase berikutnya →
-              </button>
-            )}
-          </div>
-          {isLast && (
-            <p className="hint">Selesai! Lanjut ke tab «Percakapan» untuk roleplay.</p>
-          )}
+          <RubricCard
+            rubric={flow.result.rubric!}
+            combined={flow.result.combined}
+            onPlayModel={(t) => void playJa(t)}
+          />
+          {flow.result.pronunciation && <ScoreCard result={flow.result.pronunciation} />}
+          <button type="button" className="btn secondary" onClick={onRetry}>
+            Coba lagi
+          </button>
         </>
       )}
     </section>
@@ -179,7 +192,7 @@ export function Recorder() {
 
 function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.status === 503) return 'Penilaian belum dikonfigurasi (Azure Speech).'
+    if (err.status === 503) return 'Percakapan belum dikonfigurasi (Bedrock / Azure).'
     if (err.status === 422) return 'Suara kurang jelas. Coba rekam lagi.'
     return err.message
   }

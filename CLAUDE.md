@@ -34,7 +34,7 @@
 ├── docker-compose.yml  # ローカルの Postgres（API は uv で直接起動）
 ├── Dockerfile          # 本番用の単一コンテナ（フロントをビルド → FastAPI が SPA 配信）
 ├── .dockerignore
-├── backend/            # FastAPI。音声: audio.py(ffmpeg)/speech.py(Azure SDK)/parsing.py/scoring.py、turns.py(API)、scenarios.py、schemas.py、config.py、tests/
+├── backend/            # FastAPI。音声: audio.py(ffmpeg)/speech.py(Azure STT+発音)/tts.py(Azure TTS)、採点: parsing.py/scoring.py/combine.py、会話: bedrock.py(Claude)、turns.py(API)、scenarios.py、schemas.py、config.py、tests/
 ├── frontend/           # React + Vite + TS（mobile-first、/api を :8000 へプロキシ）
 ├── docs/
 │   ├── DESIGN.md       # 設計書（UX・採点ロジック・ダッシュボード・デモ台本）

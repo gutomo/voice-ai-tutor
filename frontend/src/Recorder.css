@@ -6,17 +6,30 @@
   width: 100%;
 }
 
+.progress {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
 .rec-prompt {
   font-size: 15px;
   color: var(--text);
   text-align: center;
 }
 .rec-prompt .jp {
-  display: inline-block;
+  display: block;
   margin-top: 6px;
   font-size: 18px;
   font-weight: 600;
   color: var(--text-h);
+}
+.rec-prompt .gloss-inline {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text);
 }
 
 /* 大きな丸い録音ボタン (タップしやすいサイズ) */
@@ -151,4 +164,33 @@
   color: #dc2626;
   font-size: 14px;
   text-align: center;
+}
+
+/* ロールプレイ: 利用者役 (田中さん) の口火 */
+.patient-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--social-bg);
+}
+.patient-line .jp {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.patient-line .gloss {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+/* 列レイアウト内ではボタンを縦に伸ばさない */
+.patient-line .btn {
+  flex: 0 0 auto;
+  padding: 10px 18px;
 }

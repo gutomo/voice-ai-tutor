@@ -36,6 +36,7 @@ def api_health() -> dict[str, object]:
         "status": "ok",
         "service": "backend",
         "scoring_ready": settings.azure_ready(),
+        "conversation_ready": settings.bedrock_ready(),
     }
 
 

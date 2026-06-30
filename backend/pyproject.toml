@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-settings>=2.6",
     "python-multipart>=0.0.32",
     "azure-cognitiveservices-speech>=1.40,<1.46",
+    "boto3>=1.35",
 ]
 
 [dependency-groups]

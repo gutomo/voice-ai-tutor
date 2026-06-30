@@ -38,12 +38,14 @@
 
 ## Phase 3 — 会話ループ ＋ ルーブリック採点（Bedrock Claude）
 **ゴール:** 介護シナリオの1レッスンが会話として成立し、採点される。
-- [ ] シナリオ定義：介護「朝の声かけ＋バイタルチェック」。モデル文3つ ＋ 利用者役ペルソナ ＋ ロールプレイ1ターン（`docs/DESIGN.md` の §1, §2）
-- [ ] 利用者役の発話を Bedrock Claude で生成（日本語、初級向けにやさしく）
-- [ ] ルーブリック採点を Claude で実行（**出力は下記JSONのみ**）
-- [ ] スコア合成：発音(A) ＋ 会話(B) ＋ タスク達成(C) → 学習者スコア（`docs/DESIGN.md` の §3）
-- [ ] 返信音声を Azure TTS（ja-JP）で生成し、画面で再生
-- **受け入れ:** 5から6ターンを完走でき、各ターンで構造化スコアが返る。
+- [x] シナリオ定義：介護「朝の声かけ＋バイタルチェック」。モデル文5つ ＋ 利用者役ペルソナ(田中さん) ＋ ロールプレイ1ターン（`app/scenarios.py`）
+- [x] 利用者役の発話を Bedrock Claude で生成（`app/bedrock.py` の `generate_patient_line`、Converse API、JSON失敗時リトライ）。`POST /api/conversation/reply`
+- [x] ルーブリック採点を Claude で実行（**出力は下記JSONのみ**、`score_rubric` ＋ 0-5クランプ）
+- [x] スコア合成：発音(A) ＋ 会話(B×20) ＋ タスク達成(C) → 学習者スコア＋合格ライン到達度（`app/combine.py`）
+- [x] 返信音声を Azure TTS（ja-JP NanamiNeural）で生成（`app/tts.py`）。`POST /api/tts`、フロントで再生
+- [x] 追加: `POST /api/turn/{id}/evaluate`（scripted=発音 / roleplay=STT二段＋ルーブリック＋合成）、フロントに会話タブ＋RubricCard、ユニットテスト（外部APIはスタブ）、実呼び出しは `test_e2e_bedrock.py` を 1 本だけゲート
+- [ ] 実 Bedrock で 1 回確認（鍵 ＋ `BEDROCK_MODEL_ID` を `backend/.env` に）。`RUN_BEDROCK_E2E=1` で疎通確認。手動確認待ち
+- **受け入れ:** 5から6ターンを完走でき、各ターンで構造化スコアが返る（発音ドリル5フレーズ＋ロールプレイ1ターン。スタブ下のユニットテストで往復を検証済み）。
 
 ルーブリック採点の出力スキーマ（Claude にこの形式のJSONだけを返させる）:
 ```json

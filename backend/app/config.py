@@ -37,8 +37,12 @@ class Settings(BaseSettings):
     email_sender: str | None = None
 
     def azure_ready(self) -> bool:
-        """Azure Speech の発音採点に必要な鍵とリージョンが揃っているか。"""
+        """Azure Speech の発音採点 / TTS に必要な鍵とリージョンが揃っているか。"""
         return bool(self.azure_speech_key and self.azure_speech_region)
+
+    def bedrock_ready(self) -> bool:
+        """Bedrock Claude の会話生成 / ルーブリック採点に必要な値が揃っているか。"""
+        return bool(self.aws_access_key_id and self.aws_secret_access_key and self.bedrock_model_id)
 
 
 settings = Settings()

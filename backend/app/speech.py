@@ -30,6 +30,30 @@ class SpeechNotConfigured(RuntimeError):
     """AZURE_SPEECH_KEY / REGION が未設定。"""
 
 
+def transcribe(wav_path: Path, key: str, region: str) -> str:
+    """自由発話の STT (ja-JP)。ロールプレイで学習者の発話を文字起こしする。
+
+    DESIGN §3 の二段採点 (先に STT → その文を参照に scripted) の前段に使う。
+    """
+    import azure.cognitiveservices.speech as speechsdk
+
+    speech_config = speechsdk.SpeechConfig(subscription=key, region=region)
+    speech_config.speech_recognition_language = "ja-JP"
+    audio_config = speechsdk.audio.AudioConfig(filename=str(wav_path))
+    recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
+
+    result = recognizer.recognize_once()
+    if result.reason == speechsdk.ResultReason.NoMatch:
+        raise NoSpeechError()
+    if result.reason == speechsdk.ResultReason.Canceled:
+        details = result.cancellation_details
+        retriable = details.reason == speechsdk.CancellationReason.Error
+        raise SpeechError(f"認識がキャンセルされました: {details.reason}", retriable=retriable)
+    if result.reason != speechsdk.ResultReason.RecognizedSpeech:
+        raise SpeechError(f"認識に失敗しました: {result.reason}", retriable=False)
+    return result.text
+
+
 def assess_scripted(wav_path: Path, reference_text: str, key: str, region: str) -> dict[str, Any]:
     """既知のモデル文に対する scripted 発音採点。WAV(16k/mono/16bit) を渡すこと。"""
     # 遅延 import: スタブ時/CI ではここに到達しないのでネイティブロードを避けられる

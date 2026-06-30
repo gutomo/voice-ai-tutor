@@ -43,3 +43,27 @@
   font-size: 13px;
   color: var(--text);
 }
+
+/* モード切替タブ (発音ドリル / 会話ロールプレイ) */
+.mode-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.mode-tab.active {
+  background: #2563eb;
+  color: #fff;
+}

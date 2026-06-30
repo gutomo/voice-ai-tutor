@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Recorder } from './Recorder'
+import { RolePlay } from './RolePlay'
 import './App.css'
 
 // 説明UIは Bahasa Indonesia、学習対象は日本語。
 type Health = { status: string; service?: string }
 type ConnState = 'loading' | 'ok' | 'error'
+type Mode = 'drill' | 'roleplay'
 
 function App() {
   const [conn, setConn] = useState<ConnState>('loading')
+  const [mode, setMode] = useState<Mode>('drill')
 
   useEffect(() => {
     fetch('/api/health')
@@ -29,9 +32,34 @@ function App() {
         </span>
       </header>
 
-      <Recorder />
+      <div className="mode-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'drill'}
+          className={`mode-tab ${mode === 'drill' ? 'active' : ''}`}
+          onClick={() => setMode('drill')}
+        >
+          Latihan pengucapan
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'roleplay'}
+          className={`mode-tab ${mode === 'roleplay' ? 'active' : ''}`}
+          onClick={() => setMode('roleplay')}
+        >
+          Percakapan
+        </button>
+      </div>
 
-      <p className="hint">Phase 1 · rekam → kirim → putar ulang.</p>
+      {mode === 'drill' ? <Recorder /> : <RolePlay />}
+
+      <p className="hint">
+        {mode === 'drill'
+          ? 'Ucapkan model kalimat → skor pengucapan instan.'
+          : 'Tanggapi penghuni → skor percakapan + ambang lulus.'}
+      </p>
     </main>
   )
 }

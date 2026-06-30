@@ -8,7 +8,7 @@ LPK (インドネシアの職業訓練機関) 向けの、音声AI日本語チ�
 - フェーズ別の実行手順: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md)
 - 行動規範 (Claude Code 用): [CLAUDE.md](CLAUDE.md)
 
-現在のステータス: **Phase 2 (発音採点) 完了**。録音 → アップロード → Azure ja-JP 発音採点 → 画面にスコア (Accuracy/Fluency/Completeness + 要練習の単語)。
+現在のステータス: **Phase 3 (会話ループ＋ルーブリック採点) 実装完了**（実 Bedrock 疎通は手動確認待ち）。発音ドリル (Phase 2) に加え、利用者役 (田中さん) との介護ロールプレイを Bedrock Claude が回し、ルーブリック採点＋発音＋タスク達成を合成して合格ライン到達度まで出す。返信音声は Azure ja-JP TTS。
 
 ## 構成
 
@@ -126,6 +126,36 @@ az cognitiveservices account create \
 ```bash
 cd backend
 RUN_AZURE_E2E=1 AZURE_E2E_AUDIO=/path/to/recording.webm uv run pytest tests/test_e2e_azure.py
+```
+
+## 会話ループ・ルーブリック採点 (Phase 3)
+
+画面上部の2タブで切り替える。説明は Bahasa、練習・採点対象は日本語。
+
+- **Latihan pengucapan** (発音ドリル): 介護モデル文5フレーズを順に復唱 → `POST /api/turn/{id}/score` で発音スコア。
+- **Percakapan** (ロールプレイ): 利用者役「田中さん」の口火 (Azure TTS で再生) に音声で応答 → `POST /api/turn/{id}/evaluate` (mode=roleplay)。
+
+`evaluate` (roleplay) の内部処理:
+
+1. STT で学習者の発話を文字起こし → その文を参照に scripted 発音採点 (DESIGN §3 の二段採点、`app/scoring.py`)。
+2. Bedrock Claude でルーブリック採点 (`app/bedrock.py`、文法/語彙/敬語 0-5＋タスク達成＋CEFR、**JSONのみ**・失敗時リトライ)。
+3. 発音(A)＋会話(B×20)＋タスク達成(C) を合成し、合格ライン到達度(%)・推定CEFR/JLPT を返す (`app/combine.py`)。
+
+利用者役の発話生成は `POST /api/conversation/reply`、TTS 単体は `POST /api/tts` (WAV を返す)。
+
+### 必要なもの
+
+- **AWS の鍵 ＋ `BEDROCK_MODEL_ID`**: `backend/.env` に設定。未設定だと会話・採点APIは 503、画面は「未設定」と表示する。
+- Bedrock コンソールで対象 Claude モデルの**アクセス有効化**が事前に必要 (一度だけ)。
+- 会話の即時フィードバックは画面で完結する。Bedrock へ越境するのは軽いテキストだけ (音声は Azure に同居)。
+
+### 実 Bedrock を使うテスト (任意・課金注意)
+
+ユニットテストは Bedrock/Azure をスタブする。実呼び出しは 1 本だけ、明示フラグで (Bedrock は従量課金):
+
+```bash
+cd backend
+RUN_BEDROCK_E2E=1 uv run pytest tests/test_e2e_bedrock.py
 ```
 
 ## デプロイ
