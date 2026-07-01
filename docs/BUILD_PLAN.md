@@ -94,11 +94,13 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 
 ## Phase 6 — 結果メール
 **ゴール:** セッション終了でメールが届く。
-- [ ] SES（または SendGrid）連携
-- [ ] 学習者向けまとめメール（スコア ＋ 次回リンク、Bahasa ＋ 日本語）
-- [ ] 教師向けレポート（クラスの当日サマリ、要フォロー学習者）
-- [ ] セッション終了をトリガーに送信し、`summary_sent_at` を記録
-- **受け入れ:** 終了時に2種類のメールが送られる（送信ログで確認）。
+- [x] Amazon SES 連携（`app/emailer.py` の `send_email`：boto3 は遅延 import、認証情報は引数、一時エラーは retriable。テストではスタブ）
+- [x] 学習者向けまとめメール（`build_learner_email`：発音/会話/合格ライン到達度 ＋ 要練習語 ＋ 次回リンク。説明は Bahasa 主・練習内容は日本語で混ぜない）
+- [x] 教師向けレポート（`build_teacher_email`：当日サマリ＋到達度ランキング＋要フォロー<50%を自動フラグ。閾値は `combine.FOLLOWUP_PASSLINE_PCT` に集約）
+- [x] セッション終了をトリガーに送信し、`summary_sent_at` を記録（`app/session_summary.py` の `finalize_session`：`/api/sessions/{id}/end` が呼ぶ。2通送って1通以上成功なら打刻。送信済みは skip、`?resend=true` で再送）
+- [x] 追加: `Learner.email` 追加（未設定なら EMAIL_SENDER にフォールバック＝SES サンドボックスでも届く）、`teacher_email`/`app_base_url` 設定、`SessionEndResult`（送信ログ＝emails フィールド）、ユニットテスト（`test_emailer.py`＝本文の純関数、`test_session_end_email.py`＝送信・冪等・skip・404 を SES スタブで検証）
+- [ ] 実 SES で 1 回確認（送信元/宛先の検証＋Bedrock/SES 許可の IAM キーが必要。**課金＝要確認**なので未実行）。手動確認待ち
+- **受け入れ:** 終了時に2種類のメールが送られる（送信ログ＝`emails` で確認。SES スタブのユニットテストで往復検証済み。実 SES 送信は手動確認待ち）。
 
 ## Phase 7 — デモ仕上げ
 **ゴール:** 10から12分のライブデモが滞りなく回る（`docs/DESIGN.md` の §6 の台本）。

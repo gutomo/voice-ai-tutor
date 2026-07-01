@@ -35,6 +35,10 @@ class Settings(BaseSettings):
 
     # メール送信元 (SES で検証済みのアドレス)
     email_sender: str | None = None
+    # 教師レポートの宛先 (未設定なら email_sender に送る＝サンドボックスでも届く)
+    teacher_email: str | None = None
+    # 学習者メールの「次回リンク」の基点 (フロントの公開URL)
+    app_base_url: str = "http://localhost:5173"
 
     def azure_ready(self) -> bool:
         """Azure Speech の発音採点 / TTS に必要な鍵とリージョンが揃っているか。"""
@@ -43,6 +47,10 @@ class Settings(BaseSettings):
     def bedrock_ready(self) -> bool:
         """Bedrock Claude の会話生成 / ルーブリック採点に必要な値が揃っているか。"""
         return bool(self.aws_access_key_id and self.aws_secret_access_key and self.bedrock_model_id)
+
+    def ses_ready(self) -> bool:
+        """SES の結果メール送信に必要な AWS 認証情報と送信元が揃っているか。"""
+        return bool(self.aws_access_key_id and self.aws_secret_access_key and self.email_sender)
 
 
 settings = Settings()

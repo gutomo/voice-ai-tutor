@@ -137,6 +137,7 @@ class LearnerCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str
+    email: str | None = None
     native_lang: str = "id"
     target_sector: str = "kaigo"
 
@@ -156,6 +157,7 @@ class LearnerOut(BaseModel):
 
     id: int
     name: str
+    email: str | None = None
     native_lang: str
     target_sector: str
     created_at: datetime
@@ -196,6 +198,35 @@ class TurnOut(BaseModel):
     rubric: dict[str, Any] | None = None
     combined_score: float | None = None
     created_at: datetime
+
+
+# --- Phase 6: 結果メール (SES) ---
+
+
+class SessionReport(BaseModel):
+    """1セッション分のまとめ (学習者メールの素材)。ここは API では返さず内部で使う。"""
+
+    session: SessionOut
+    learner: LearnerOut
+    turns: list[TurnOut] = Field(default_factory=list)  # このセッションのターン (古い順)
+
+
+class EmailResult(BaseModel):
+    """1通のメール送信結果 (送信ログ)。"""
+
+    kind: Literal["learner", "teacher"]
+    recipient: str
+    status: Literal["sent", "skipped", "error"]
+    message_id: str | None = None
+    detail: str | None = None  # skipped / error の理由
+
+
+class SessionEndResult(BaseModel):
+    """セッション終了の結果。打刻後のセッションと 2 通のメール送信ログを返す。"""
+
+    session: SessionOut
+    emails_sent: bool  # 1 通以上を実送信したか
+    emails: list[EmailResult] = Field(default_factory=list)
 
 
 class TtsRequest(BaseModel):

@@ -191,6 +191,36 @@ uv run python -m app.seed     # 既定の DATABASE_URL (docker compose の Postg
 
 投入後、フロントの 🎓 Guru タブを開くと 6名のクラスが表示され、Andi・Putra が要フォローにフラグされる。
 
+## 結果メール (Phase 6)
+
+セッション終了 (`POST /api/sessions/{id}/end`) をトリガーに、Amazon SES で 2 通のメールを送る。
+
+- **学習者向けまとめ** (`app/emailer.py` の `build_learner_email`): その日の発音・会話スコア、合格ライン到達度、
+  要練習の単語、次回リンク。説明は Bahasa Indonesia を主、練習内容・スコア名は日本語 (2言語を混ぜない)。
+  宛先は `Learner.email`。未設定なら `EMAIL_SENDER` にフォールバックする (SES サンドボックスでも届く)。
+- **教師向けレポート** (`build_teacher_email`): クラスの当日サマリ、到達度ランキング、
+  **要フォロー学習者を自動フラグ** (到達度 < 50% = `combine.FOLLOWUP_PASSLINE_PCT`)。宛先は `TEACHER_EMAIL`
+  (未設定なら `EMAIL_SENDER`)。
+
+送信すると `sessions.summary_sent_at` を打刻する。レスポンス (`SessionEndResult`) の `emails` が送信ログ
+(宛先・status・MessageId)。冪等: 送信済みセッションは再送しない (`?resend=true` で再送)。SES 未設定
+(`EMAIL_SENDER` 空) の場合はセッション終了だけ行い、メールは `skipped` を返す。オーケストレーションは
+`app/session_summary.py` の `finalize_session`。
+
+```bash
+# セッションを終了してまとめメールを送る (SES 設定済みが前提)
+curl -X POST http://localhost:8000/api/sessions/1/end
+```
+
+**環境変数** (`.env`): `EMAIL_SENDER` (SES で検証済みの送信元), `TEACHER_EMAIL` (教師レポートの宛先),
+`APP_BASE_URL` (学習者メールの次回リンクの基点)。SES は `AWS_REGION` で有効化し、送信元アドレスを検証しておく
+(サンドボックスでは宛先も検証が必要)。認証情報は Bedrock と同じ IAM キーを流用できる (SES 権限を付与)。
+
+### 実 SES を使う送信 (任意・課金＋手動セットアップ)
+
+ユニットテストは SES をスタブする (`tests/test_emailer.py` は本文の純関数、`tests/test_session_end_email.py`
+は送信・冪等・skip をスタブで検証)。実送信は SES の送信元検証と IAM 権限が要る (CLAUDE.md「デプロイ」の手動前提)。
+
 ## デプロイ
 
 Azure Container Apps へのデプロイは [infra/](infra/) の Terraform を参照 (デモはゼロスケールで、商談時だけ起動)。

@@ -193,6 +193,7 @@ export type LearnerProfile = {
 export type Learner = {
   id: number
   name: string
+  email: string | null
   native_lang: string
   target_sector: string
   created_at: string

@@ -7,12 +7,13 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
-from app import persistence
+from app import persistence, session_summary
 from app.persistence import UnknownLearnerError, UnknownSessionError
 from app.schemas import (
     LearnerCreate,
     LearnerOut,
     SessionCreate,
+    SessionEndResult,
     SessionOut,
     TurnOut,
 )
@@ -63,8 +64,13 @@ async def get_session(session_id: int) -> SessionOut:
 
 
 @router.post("/sessions/{session_id}/end")
-async def end_session(session_id: int) -> SessionOut:
+async def end_session(session_id: int, resend: bool = False) -> SessionEndResult:
+    """セッションを終了し、結果メール (学習者まとめ + 教師レポート) を送る (Phase 6)。
+
+    `summary_sent_at` を打刻。SES 未設定や送信済み (resend=false) の場合はメールを
+    スキップしてセッション終了だけ行う。送信ログは emails フィールドで返す。
+    """
     try:
-        return await run_in_threadpool(persistence.end_session, session_id)
+        return await run_in_threadpool(session_summary.finalize_session, session_id, resend=resend)
     except UnknownSessionError as e:
         raise HTTPException(status_code=404, detail="セッションが見つかりません") from e

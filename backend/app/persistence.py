@@ -23,6 +23,7 @@ from app.schemas import (
     RubricScore,
     SessionCreate,
     SessionOut,
+    SessionReport,
     TurnOut,
 )
 
@@ -42,6 +43,7 @@ def create_learner(data: LearnerCreate) -> LearnerOut:
     with session_scope() as db:
         learner = LearnerModel(
             name=data.name,
+            email=data.email,
             native_lang=data.native_lang,
             target_sector=data.target_sector,
         )
@@ -108,6 +110,37 @@ def end_session(session_id: int) -> SessionOut:
             raise UnknownSessionError(str(session_id))
         if sess.ended_at is None:
             sess.ended_at = _utcnow()
+        db.flush()
+        return SessionOut.model_validate(sess)
+
+
+def get_session_report(session_id: int) -> SessionReport:
+    """まとめメール用に、セッション + 学習者(プロファイル込み) + そのターン群を集める。"""
+    with session_scope() as db:
+        sess = db.get(LessonSession, session_id)
+        if sess is None:
+            raise UnknownSessionError(str(session_id))
+        learner = db.get(LearnerModel, sess.learner_id)
+        assert learner is not None  # FK 制約上ありえない
+        turns = (
+            db.execute(select(Turn).where(Turn.session_id == session_id).order_by(Turn.created_at))
+            .scalars()
+            .all()
+        )
+        return SessionReport(
+            session=SessionOut.model_validate(sess),
+            learner=LearnerOut.model_validate(learner),
+            turns=[TurnOut.model_validate(t) for t in turns],
+        )
+
+
+def mark_summary_sent(session_id: int) -> SessionOut:
+    """まとめメール送信済みを打刻する (summary_sent_at)。冪等に上書きする。"""
+    with session_scope() as db:
+        sess = db.get(LessonSession, session_id)
+        if sess is None:
+            raise UnknownSessionError(str(session_id))
+        sess.summary_sent_at = _utcnow()
         db.flush()
         return SessionOut.model_validate(sess)
 
