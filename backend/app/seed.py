@@ -39,6 +39,14 @@ from app.schemas import (
 SCENARIO = "kaigo_morning"
 MODEL_ANSWER = "毛布をもう1枚お持ちしますね"
 
+# 商談で実際に録音するライブ用のデモ学習者。frontend の SessionProvider が
+# 再利用する固定名 (DEMO_LEARNER_NAME) と一致させること。
+LIVE_DEMO_NAME = "Live Demo (Siswa)"
+# ライブ用ベースライン: ドリル 2 ターンぶんの Accuracy。combined 平均 ~68 → 到達度 ~53%。
+# 要フォロー閾値 (50%) のすぐ上に置くので、ライブ前は要フォローに入らず (コホートの
+# 「要フォロー 2 名」の物語を崩さない)、当日 1 ターン録るだけで到達度が上へ動く (money shot)。
+_LIVE_DEMO_BASELINE_ACC: list[float] = [64.0, 68.0]
+
 # 復唱ドリルのモデル文と、外しやすい語 (発音ヒートマップ用)。
 _DRILLS: list[tuple[str, str]] = [
     ("おはようございます。よく眠れましたか", "眠れましたか"),
@@ -213,6 +221,41 @@ def _seed_learner(spec: _Spec) -> LearnerProfileOut:
     return profile
 
 
+def _seed_live_demo() -> LearnerProfileOut:
+    """ライブ用のデモ学習者に短いベースライン (ドリル 2 ターン) を積む。
+
+    当日は frontend がこの同名学習者を再利用し、新しいセッションでライブの録音を
+    足していく (プロファイルは全ターンの平均なので到達度がベースラインから動く)。
+    各ターンに要練習語を 1 つ置くので、ライブ前でも発音ヒートマップに素材がある
+    (Azure がライブで「わざと外し」を拾えなかったときの保険にもなる)。
+    """
+    learner = persistence.create_learner(LearnerCreate(name=LIVE_DEMO_NAME))
+    session = persistence.create_session(SessionCreate(learner_id=learner.id, scenario=SCENARIO))
+    profile: LearnerProfileOut | None = None
+
+    for i, acc in enumerate(_LIVE_DEMO_BASELINE_ACC):
+        ref, hard = _DRILLS[i]
+        weak = [
+            WordScore(word=hard, accuracy=round(_clamp(acc - 18), 1), error_type="Mispronunciation")
+        ]
+        tid = _turn_id(LIVE_DEMO_NAME, i + 1)
+        pron = _pron(tid, ref, ref, acc, weak)
+        combined = combine.combine_scores(pron.pron_score, None)
+        profile = persistence.record_turn(
+            session.id,
+            tid,
+            turn_no=i + 1,
+            audio_path=_write_silent_wav(tid),
+            transcript=ref,
+            pron=pron,
+            rubric=None,
+            combined=combined,
+        )
+
+    assert profile is not None
+    return profile
+
+
 def _clear(names: list[str]) -> None:
     """同名のデモ学習者を削除する (cascade でセッション・ターン・プロファイルも消える)。"""
     with session_scope() as db:
@@ -229,9 +272,41 @@ def seed_demo(reset: bool = True) -> list[tuple[str, LearnerProfileOut]]:
     return [(spec.name, _seed_learner(spec)) for spec in _COHORT]
 
 
+def seed_live_demo(reset: bool = True) -> tuple[str, LearnerProfileOut]:
+    """ライブ用のデモ学習者「Live Demo (Siswa)」を短いベースライン付きで用意する。"""
+    init_db()
+    if reset:
+        _clear([LIVE_DEMO_NAME])
+    return LIVE_DEMO_NAME, _seed_live_demo()
+
+
+def seed_all(
+    reset: bool = True,
+) -> tuple[list[tuple[str, LearnerProfileOut]], tuple[str, LearnerProfileOut]]:
+    """デモ一式 (コホート + ライブ用学習者) を投入する。商談前のリセットに使う。"""
+    cohort = seed_demo(reset=reset)
+    live = seed_live_demo(reset=reset)
+    return cohort, live
+
+
 if __name__ == "__main__":
-    for name, prof in seed_demo():
+    import sys
+
+    # Windows のコンソールは既定 cp1252 で、下の「←」や日本語注記が
+    # UnicodeEncodeError で落ちる。デモ前のシードでいきなり traceback を
+    # 出さないよう、標準出力を UTF-8 に切り替える (対応環境のみ)。
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    cohort, (live_name, live_prof) = seed_all()
+    for name, prof in cohort:
         print(
-            f"{name:16} passline={prof.kaigo_passline_pct:5.1f}%  "
+            f"{name:18} passline={prof.kaigo_passline_pct:5.1f}%  "
             f"cefr={prof.cefr_estimate} jlpt={prof.jlpt_estimate}"
         )
+    print("-" * 56)
+    print(
+        f"{live_name:18} passline={live_prof.kaigo_passline_pct:5.1f}%  "
+        f"cefr={live_prof.cefr_estimate} jlpt={live_prof.jlpt_estimate}  "
+        "← ライブ用ベースライン (当日ここから動かす)"
+    )

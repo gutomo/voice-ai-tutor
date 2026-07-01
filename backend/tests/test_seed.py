@@ -66,3 +66,49 @@ def test_seed_turns_have_pron_and_rubric() -> None:
     assert len(turns) == 5
     assert any(t.rubric is not None for t in turns)  # ロールプレイ
     assert any(t.weak_phonemes for t in turns)  # 発音ヒートマップの素
+
+
+# --- ライブ用のデモ学習者 (Phase 7) ---
+
+
+def test_seed_live_demo_has_short_baseline() -> None:
+    from app import persistence
+
+    name, prof = seed.seed_live_demo()
+    assert name == seed.LIVE_DEMO_NAME
+    learner = next(le for le in persistence.list_learners() if le.name == name)
+    turns = persistence.get_learner_turns(learner.id)
+    # 短いベースライン (ドリル 2 ターン)。ライブで足す余地を残す。
+    assert len(turns) == 2
+    # 各ターンに要練習語 → ライブ前でも発音ヒートマップに素材がある。
+    assert all(t.weak_phonemes for t in turns)
+    assert prof.cefr_estimate is not None
+
+
+def test_seed_live_demo_not_flagged_at_start() -> None:
+    """ライブ前は要フォロー閾値のすぐ上 (コホートの「要フォロー 2 名」を崩さない)。"""
+    _name, prof = seed.seed_live_demo()
+    assert FOLLOWUP_THRESHOLD <= prof.kaigo_passline_pct < 60.0
+
+
+def test_seed_live_demo_is_idempotent() -> None:
+    from app import persistence
+
+    seed.seed_live_demo()
+    seed.seed_live_demo()
+    matches = [le for le in persistence.list_learners() if le.name == seed.LIVE_DEMO_NAME]
+    assert len(matches) == 1
+    assert len(persistence.get_learner_turns(matches[0].id)) == 2
+
+
+def test_seed_all_sets_up_cohort_and_live_demo() -> None:
+    from app import persistence
+
+    cohort, (live_name, _live_prof) = seed.seed_all()
+    assert len(cohort) == len(seed._COHORT)
+    # コホートの要フォローはちょうど 2 名のまま (ライブ用学習者は閾値の上)。
+    followups = [name for name, prof in cohort if prof.kaigo_passline_pct < FOLLOWUP_THRESHOLD]
+    assert len(followups) == 2
+    names = {le.name for le in persistence.list_learners()}
+    assert live_name in names
+    assert len(names) == len(seed._COHORT) + 1
