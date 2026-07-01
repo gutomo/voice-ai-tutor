@@ -109,4 +109,5 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 - [x] デモ用の学習者1名 ＋ クラス（要フォロー2名）をシード（`app/seed.py`：`seed_live_demo` がライブ用「Live Demo (Siswa)」に短いベースライン=ドリル2ターン、到達度53.4%を積む。要フォロー閾値50%のすぐ上なのでコホートの「要フォロー2名」を崩さず、当日1ターンで上へ動く=money shot。`seed_all` でコホート6名＋ライブ用を一括投入し、商談前のリセットに使う。frontend の `DEMO_LEARNER_NAME` と同名で再利用。テスト `tests/test_seed.py` にライブ用の検証を追加）
 - [x] 「わざと少し外す」発音の見せ場を再現確認（弱い音が①その場の ScoreCard の要練習語と②教師ダッシュボードの発音ヒートマップの両方に出ることを `tests/test_demo_rehearsal.py::test_deliberate_miss_surfaces_in_scorecard_and_heatmap` で検証。シード各ターンに要練習語を1つ置き、Azure がライブで崩れを拾えなくてもヒートマップが空にならない保険付き）
 - [x] 台本どおりに通しリハーサル（`tests/test_demo_rehearsal.py`：DESIGN §6 台本の各ビート＝ドリル→ロールプレイ→山場のプロファイル反映→まとめメール2通を API で頭から通す。外部APIはスタブ。手順書は `docs/DEMO_RUNBOOK.md`＝当日の操作・事前リセット・フォールバック）
+- [x] 当日準備をワンコマンド化（`app/preflight.py`：DB 疎通→デモデータのリセット→台本の通しスモークを一括し緑/赤のチェックリストを出す。`uv run python -m app.preflight`＝フル、`--reset-only`＝デモ間の高速リセット。実 API 未設定は advisory に留めローカルで完結する 3 判定で合否。テスト `tests/test_preflight.py`。実 Postgres で GREEN を確認、DEMO_RUNBOOK §1/§5 を更新）
 - **受け入れ:** money shot（録音 → 画面スコア → ダッシュボード反映）が安定して再現できる。（自動リハーサルスモークで検証。ライブ通しは `docs/DEMO_RUNBOOK.md` の手順で再現）

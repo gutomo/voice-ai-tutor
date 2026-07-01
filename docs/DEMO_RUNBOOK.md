@@ -4,6 +4,8 @@
 > `docs/DESIGN.md` §6 が一次資料。この文書は「当日どのボタンを押すか」「事前に何をリセットするか」
 > 「詰まったときどう逃げるか」を足す。
 >
+> 当日の準備は `cd backend && uv run python -m app.preflight` の 1 本にまとまっている
+> (DB 疎通 → デモデータのリセット → 台本の通しスモークを一括、緑/赤で判定。詳細は §1 手順 3)。
 > API レベルの通しリハーサルは `backend/tests/test_demo_rehearsal.py` が自動化している (外部 API はスタブ)。
 > 台本の各ビート (ドリル → ロールプレイ → 山場 → まとめメール) が順に成立することを毎回検証できる。
 
@@ -31,18 +33,19 @@
    (会話・ルーブリック。推論プロファイル `us.anthropic.claude-sonnet-4-6` を使う。基盤 ID は on-demand 不可)、
    `EMAIL_SENDER` / `TEACHER_EMAIL` (SES。サンドボックスでは宛先も検証済みにする)。
 
-3. **デモデータをリセットする** (冪等。同名のデモ学習者を作り直すだけで実データには触れない)。
+3. **プリフライトを 1 本流す** (DB 疎通 → デモデータのリセット → 台本の通しスモークを一括、緑/赤で判定)。
    ```bash
-   cd backend && uv run python -m app.seed
+   cd backend && uv run python -m app.preflight
    ```
-   出力の末尾が `Live Demo (Siswa) ... passline= 53.4% ... ← ライブ用ベースライン` なら成功。
+   末尾が `GREEN: デモ準備 OK` なら当日回る。`RED` なら表示された `[FAIL]` を直す
+   (最頻は Postgres 未起動 → 手順 1 の `docker compose up -d`)。出力中の
+   `Live Demo (Siswa) ... passline= 53.4% ... <- ライブ用ベースライン` がライブの開始点。
+   実 API (Azure / Bedrock / SES) の設定状況も advisory で並ぶ (未設定でも §4 のフォールバックでデモ可)。
 
-4. **自動リハーサルを 1 本流す** (台本が API レベルで通ることの最終確認)。
-   ```bash
-   cd backend && uv run pytest tests/test_demo_rehearsal.py -q
-   ```
+   > 個別に叩くなら: `uv run python -m app.seed` (リセットのみ) と
+   > `uv run pytest tests/test_demo_rehearsal.py -q` (スモークのみ) に分かれる。
 
-5. **ブラウザを整える**。録音する端末 (スマホ or PC) で 📱 Siswa タブを開き、マイク許可を先に済ませておく
+4. **ブラウザを整える**。録音する端末 (スマホ or PC) で 📱 Siswa タブを開き、マイク許可を先に済ませておく
    (本番でパーミッションダイアログを出さない)。教師ダッシュボードを見せる用に 🎓 Guru を別タブで開いておく。
 
 ## 2. 当日の操作 (DESIGN §6 台本に対応)
@@ -81,5 +84,6 @@
 
 ## 5. デモ後のリセット
 
-次の商談に備え、手順 3 のシードを再実行すればライブ用学習者は 53.4% のベースラインへ戻る
-(当日足したライブのセッション・ターンごと作り直す)。コホート 6 名も同時に作り直される。
+次の商談に備え、`cd backend && uv run python -m app.preflight --reset-only` を実行すれば
+ライブ用学習者は 53.4% のベースラインへ戻る (当日足したライブのセッション・ターンごと作り直す。
+スモークを省くので数秒)。コホート 6 名も同時に作り直される。
