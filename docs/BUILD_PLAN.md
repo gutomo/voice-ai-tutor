@@ -105,6 +105,7 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 ## Phase 7 — デモ仕上げ
 **ゴール:** 10から12分のライブデモが滞りなく回る（`docs/DESIGN.md` の §6 の台本）。
 - [x] レッスン終了 → まとめメール送信を**学習者アプリの UI から**起こす（`frontend/src/SessionBar.tsx` の終了ボタン → `POST /api/sessions/{id}/end`。スクリプト/curl 不要）。セッションは `SessionProvider` が保持し（`session-context.ts`）、固定のデモ学習者「Live Demo (Siswa)」を再利用。ドリル・ロールプレイの各ターンは `session_id` 付き `evaluate` でそのセッションに保存され、録音のたびに合格ライン到達度が動く（＝money shot）。送信ログ（宛先・status）は押下後に画面表示。ロール切替をまたいでもセッションは維持する
+- [x] 実ブラウザで通し確認（Chrome で 📱Siswa → ドリル1ターンを録音 → Azure 発音採点 Accuracy 95 → 合格ライン到達度 81.8%／CEFR B1・JLPT N3 に更新 → 「Akhiri sesi & kirim ringkasan」で `finalize_session` を起動 → 学習者まとめ＋教師レポートの 2 通が実 SES（us-east-1 サンドボックス、宛先は EMAIL_SENDER フォールバック）で送信され、`summary_sent_at` 打刻と受信を確認。2026-07-01）
 - [ ] デモ用の学習者1名 ＋ クラス（要フォロー2名）をシード
 - [ ] 「わざと少し外す」発音の見せ場を再現確認
 - [ ] 台本どおりに通しリハーサル
