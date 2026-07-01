@@ -106,7 +106,8 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 **ゴール:** 10から12分のライブデモが滞りなく回る（`docs/DESIGN.md` の §6 の台本）。
 - [x] レッスン終了 → まとめメール送信を**学習者アプリの UI から**起こす（`frontend/src/SessionBar.tsx` の終了ボタン → `POST /api/sessions/{id}/end`。スクリプト/curl 不要）。セッションは `SessionProvider` が保持し（`session-context.ts`）、固定のデモ学習者「Live Demo (Siswa)」を再利用。ドリル・ロールプレイの各ターンは `session_id` 付き `evaluate` でそのセッションに保存され、録音のたびに合格ライン到達度が動く（＝money shot）。送信ログ（宛先・status）は押下後に画面表示。ロール切替をまたいでもセッションは維持する
 - [x] 実ブラウザで通し確認（Chrome で 📱Siswa → ドリル1ターンを録音 → Azure 発音採点 Accuracy 95 → 合格ライン到達度 81.8%／CEFR B1・JLPT N3 に更新 → 「Akhiri sesi & kirim ringkasan」で `finalize_session` を起動 → 学習者まとめ＋教師レポートの 2 通が実 SES（us-east-1 サンドボックス、宛先は EMAIL_SENDER フォールバック）で送信され、`summary_sent_at` 打刻と受信を確認。2026-07-01）
-- [ ] デモ用の学習者1名 ＋ クラス（要フォロー2名）をシード
-- [ ] 「わざと少し外す」発音の見せ場を再現確認
-- [ ] 台本どおりに通しリハーサル
-- **受け入れ:** money shot（録音 → 画面スコア → ダッシュボード反映）が安定して再現できる。
+- [x] デモ用の学習者1名 ＋ クラス（要フォロー2名）をシード（`app/seed.py`：`seed_live_demo` がライブ用「Live Demo (Siswa)」に短いベースライン=ドリル2ターン、到達度53.4%を積む。要フォロー閾値50%のすぐ上なのでコホートの「要フォロー2名」を崩さず、当日1ターンで上へ動く=money shot。`seed_all` でコホート6名＋ライブ用を一括投入し、商談前のリセットに使う。frontend の `DEMO_LEARNER_NAME` と同名で再利用。テスト `tests/test_seed.py` にライブ用の検証を追加）
+- [x] 「わざと少し外す」発音の見せ場を再現確認（弱い音が①その場の ScoreCard の要練習語と②教師ダッシュボードの発音ヒートマップの両方に出ることを `tests/test_demo_rehearsal.py::test_deliberate_miss_surfaces_in_scorecard_and_heatmap` で検証。シード各ターンに要練習語を1つ置き、Azure がライブで崩れを拾えなくてもヒートマップが空にならない保険付き）
+- [x] 台本どおりに通しリハーサル（`tests/test_demo_rehearsal.py`：DESIGN §6 台本の各ビート＝ドリル→ロールプレイ→山場のプロファイル反映→まとめメール2通を API で頭から通す。外部APIはスタブ。手順書は `docs/DEMO_RUNBOOK.md`＝当日の操作・事前リセット・フォールバック）
+- [x] 当日準備をワンコマンド化（`app/preflight.py`：DB 疎通→デモデータのリセット→台本の通しスモークを一括し緑/赤のチェックリストを出す。`uv run python -m app.preflight`＝フル、`--reset-only`＝デモ間の高速リセット。実 API 未設定は advisory に留めローカルで完結する 3 判定で合否。テスト `tests/test_preflight.py`。実 Postgres で GREEN を確認、DEMO_RUNBOOK §1/§5 を更新）
+- **受け入れ:** money shot（録音 → 画面スコア → ダッシュボード反映）が安定して再現できる。（自動リハーサルスモークで検証。ライブ通しは `docs/DEMO_RUNBOOK.md` の手順で再現）

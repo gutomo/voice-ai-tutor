@@ -191,6 +191,12 @@ uv run python -m app.seed     # 既定の DATABASE_URL (docker compose の Postg
 
 投入後、フロントの 🎓 Guru タブを開くと 6名のクラスが表示され、Andi・Putra が要フォローにフラグされる。
 
+`python -m app.seed` は `seed_all` を実行し、上のコホート 6名に加えてライブ用のデモ学習者
+**Live Demo (Siswa)** も投入する (Phase 7)。ライブ用は短いベースライン (ドリル2ターン・到達度 53.4%) を持ち、
+要フォロー閾値 (50%) のすぐ上に置く。商談当日はこの同名学習者を frontend が再利用し、録音した各ターンが積み上がって
+到達度が上へ動く (money shot)。冪等なので商談前のリセットにそのまま使える。当日の操作・事前準備・フォールバックは
+[docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md)、台本は [docs/DESIGN.md](docs/DESIGN.md) §6 を参照。
+
 ## 結果メール (Phase 6)
 
 セッション終了 (`POST /api/sessions/{id}/end`) をトリガーに、Amazon SES で 2 通のメールを送る。
