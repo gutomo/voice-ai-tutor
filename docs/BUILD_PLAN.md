@@ -99,8 +99,8 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 - [x] 教師向けレポート（`build_teacher_email`：当日サマリ＋到達度ランキング＋要フォロー<50%を自動フラグ。閾値は `combine.FOLLOWUP_PASSLINE_PCT` に集約）
 - [x] セッション終了をトリガーに送信し、`summary_sent_at` を記録（`app/session_summary.py` の `finalize_session`：`/api/sessions/{id}/end` が呼ぶ。2通送って1通以上成功なら打刻。送信済みは skip、`?resend=true` で再送）
 - [x] 追加: `Learner.email` 追加（未設定なら EMAIL_SENDER にフォールバック＝SES サンドボックスでも届く）、`teacher_email`/`app_base_url` 設定、`SessionEndResult`（送信ログ＝emails フィールド）、ユニットテスト（`test_emailer.py`＝本文の純関数、`test_session_end_email.py`＝送信・冪等・skip・404 を SES スタブで検証）
-- [ ] 実 SES で 1 回確認（送信元/宛先の検証＋Bedrock/SES 許可の IAM キーが必要。**課金＝要確認**なので未実行）。手動確認待ち
-- **受け入れ:** 終了時に2種類のメールが送られる（送信ログ＝`emails` で確認。SES スタブのユニットテストで往復検証済み。実 SES 送信は手動確認待ち）。
+- [x] 実 SES で 1 回確認（us-east-1 サンドボックス。`gutomo999@gmail.com` を identity 検証し送信元/宛先に使用。Dewi のセッションを finalize → 学習者まとめ＋教師レポートの 2 通が MessageId 付きで送信され、`summary_sent_at` 打刻を確認）
+- **受け入れ:** 終了時に2種類のメールが送られる（送信ログ＝`emails` で確認。SES スタブのユニットテスト ＋ 実 SES 往復で検証済み）。
 
 ## Phase 7 — デモ仕上げ
 **ゴール:** 10から12分のライブデモが滞りなく回る（`docs/DESIGN.md` の §6 の台本）。
