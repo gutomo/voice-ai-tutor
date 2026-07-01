@@ -8,7 +8,7 @@ LPK (インドネシアの職業訓練機関) 向けの、音声AI日本語チ�
 - フェーズ別の実行手順: [docs/BUILD_PLAN.md](docs/BUILD_PLAN.md)
 - 行動規範 (Claude Code 用): [CLAUDE.md](CLAUDE.md)
 
-現在のステータス: **Phase 3 (会話ループ＋ルーブリック採点) 実装完了**（実 Bedrock 疎通は手動確認待ち）。発音ドリル (Phase 2) に加え、利用者役 (田中さん) との介護ロールプレイを Bedrock Claude が回し、ルーブリック採点＋発音＋タスク達成を合成して合格ライン到達度まで出す。返信音声は Azure ja-JP TTS。
+現在のステータス: **Phase 5 (教師ダッシュボード) 実装完了**。発音ドリル＋介護ロールプレイ (Phase 2/3) の採点を Postgres に蓄積し (Phase 4)、教師ダッシュボードで学習者ビュー (推定レベル・発音ヒートマップ・合格ライン到達度の推移・会話ログ＋再生) とコホートビュー (合格見込み分布・要フォロー自動フラグ) を表示する。会話・採点は Bedrock Claude、発音採点・TTS は Azure ja-JP。
 
 ## 構成
 
@@ -157,6 +157,39 @@ RUN_AZURE_E2E=1 AZURE_E2E_AUDIO=/path/to/recording.webm uv run pytest tests/test
 cd backend
 RUN_BEDROCK_E2E=1 uv run pytest tests/test_e2e_bedrock.py
 ```
+
+## 永続化・合格ライン推定 (Phase 4)
+
+`POST /api/turn/{id}/evaluate` に `session_id` を渡すと、採点結果を Postgres に保存し、学習者の全ターンから
+合格ライン到達度 (%)・推定 CEFR/JLPT を作り直して返す (= デモの山場)。学習者・セッションの API は
+`/api/learners`・`/api/sessions`・`/api/learners/{id}/turns` (`app/learners.py`)。スキーマは ORM の `create_all`
+で用意し、Alembic は後回し (`app/models.py` / `app/db.py`)。`DATABASE_URL` 未設定でも起動は継続する
+(DB を使うエンドポイントだけ実行時にエラー)。
+
+## 教師ダッシュボード (Phase 5)
+
+画面上部のロール切替で **📱 Siswa (学習者アプリ)** ↔ **🎓 Guru (教師ダッシュボード)** を行き来する
+(デモ台本で画面を切り替える操作)。ダッシュボードは Phase 4 の API をそのまま読む (新規エンドポイントなし)。
+
+- **コホートビュー**: クラスの集計 (人数・平均到達度・要フォロー数)、合格見込み分布 (20点刻み)、
+  **要フォロー学習者の自動フラグ** (合格ライン到達度 < 50%)、学習者一覧 (行クリックで詳細へ)。
+- **学習者ビュー**: 推定レベル (CEFR/JLPT)、合格ライン到達度の**推移** (ターン累積)、
+  **発音ヒートマップ** (要練習語を accuracy で色分け)、**会話ログ** (各ターンの転写・スコア・ルーブリック＋音声再生)。
+- 集計ロジックは `frontend/src/dashboard/metrics.ts` に集約 (合格ライン計算は `app/combine.py` と整合)。
+  チャートは依存を増やさず CSS バー＋SVG スパークライン (`frontend/src/dashboard/charts.tsx`)。
+
+### デモデータの投入 (シード)
+
+ダッシュボードを実データで見せるためのデモコホート (6名・うち2名は要フォロー) を投入する。スコアは
+`app/combine.py` の本番ロジックを通すのでダミー直書きではない。各ターンに無音 WAV を置くので会話ログの
+再生 UI も成立する。再実行しても同名のデモ学習者を作り直すだけ (他の学習者には触れない)。
+
+```bash
+cd backend
+uv run python -m app.seed     # 既定の DATABASE_URL (docker compose の Postgres) に投入
+```
+
+投入後、フロントの 🎓 Guru タブを開くと 6名のクラスが表示され、Andi・Putra が要フォローにフラグされる。
 
 ## デプロイ
 

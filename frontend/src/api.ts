@@ -180,6 +180,65 @@ export async function evaluateTurn(turnId: string, body: EvaluateBody = {}): Pro
   return (await res.json()) as TurnEvaluation
 }
 
+// --- Phase 5: 教師ダッシュボード (学習者ビュー + コホートビュー) ---
+
+export type LearnerProfile = {
+  learner_id: number
+  cefr_estimate: string | null
+  jlpt_estimate: string | null
+  kaigo_passline_pct: number
+  updated_at: string | null
+}
+
+export type Learner = {
+  id: number
+  name: string
+  native_lang: string
+  target_sector: string
+  created_at: string
+  profile: LearnerProfile | null
+}
+
+// 保存済みターン (TurnOut)。weak_phonemes は ja-JP では「弱い単語」のリスト。
+export type Turn = {
+  id: string
+  session_id: number
+  turn_no: number | null
+  transcript: string | null
+  pron_accuracy: number | null
+  pron_fluency: number | null
+  pron_completeness: number | null
+  weak_phonemes: WordScore[] | null
+  rubric: RubricScore | null
+  combined_score: number | null
+  created_at: string
+}
+
+// コホート一覧 (各学習者のプロファイル付き)。
+export async function listLearners(): Promise<Learner[]> {
+  const res = await fetch('/api/learners')
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as Learner[]
+}
+
+export async function getLearner(learnerId: number): Promise<Learner> {
+  const res = await fetch(`/api/learners/${learnerId}`)
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as Learner
+}
+
+// 学習者の全ターンを新しい順に返す (会話ログ・推移・ヒートマップの素)。
+export async function getLearnerTurns(learnerId: number): Promise<Turn[]> {
+  const res = await fetch(`/api/learners/${learnerId}/turns`)
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as Turn[]
+}
+
+// 保存済みターンの音声 URL (会話ログの再生用)。
+export function turnAudioUrl(turnId: string): string {
+  return `/api/turn/${turnId}/audio`
+}
+
 // 日本語テキストを Azure TTS で合成し、再生用の object URL を返す。
 // 呼び出し側は使い終わったら URL.revokeObjectURL すること。
 export async function synthesizeTtsUrl(text: string, voice?: string): Promise<string> {

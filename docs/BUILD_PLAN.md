@@ -85,10 +85,12 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 
 ## Phase 5 — 教師ダッシュボード（まずモック → 実データ）
 **ゴール:** 教師が学習者とクラスの状態を見られる。
-- [ ] 学習者ビュー：推定レベル、発音ヒートマップ（弱点音素）、合格ライン到達度の推移、会話ログ ＋ 音声再生
-- [ ] コホートビュー：合格見込み分布、要フォロー学習者の自動フラグ（到達度が閾値未満）
-- [ ] まずダミーデータで描画 → Phase 4 のAPIに接続
-- **受け入れ:** デモ用学習者のスコアが、学習者ビューとコホートビューの両方に反映される。
+- [x] 学習者ビュー：推定レベル(CEFR/JLPT)、発音ヒートマップ（要練習語を accuracy で色分け）、合格ライン到達度の推移（ターン累積）、会話ログ ＋ 音声再生（`frontend/src/dashboard/LearnerView.tsx`）
+- [x] コホートビュー：合格見込み分布（到達度の20点刻みヒストグラム）、要フォロー学習者の自動フラグ（到達度 < 50%）（`frontend/src/dashboard/CohortView.tsx`）
+- [x] Phase 4 の API にそのまま接続（`/api/learners`＝プロファイル付き・`/api/learners/{id}/turns`・`/api/turn/{id}/audio`。新規エンドポイントは不要だった）。集計ロジックは `frontend/src/dashboard/metrics.ts` に集約（合格ライン計算は combine.py と整合）
+- [x] 追加: デモコホートのシード `app/seed.py`（6名・うち2名要フォロー。スコアは combine.py 経由なので実計算と整合。各ターンに無音WAVを置き会話ログの再生UIを成立させる）＋テスト `tests/test_seed.py`、画面上部に学習者アプリ↔教師ダッシュボードのロール切替（`App.tsx`）、チャートは依存を増やさず CSS バー＋SVG スパークライン（`dashboard/charts.tsx`）
+- [x] 検証: frontend ビルド＋oxlint、backend 全テスト、シードを通した実 API スモーク（`/api/learners` 6名・要フォロー2名・Dewi 64.8%・ターン5件・音声 audio/wav）
+- **受け入れ:** デモ用学習者のスコアが、学習者ビューとコホートビューの両方に反映される（シード＋実 API スモークで検証済み。実ブラウザでの目視は手動確認）。
 
 ## Phase 6 — 結果メール
 **ゴール:** セッション終了でメールが届く。
