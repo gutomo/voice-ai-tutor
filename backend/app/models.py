@@ -30,6 +30,8 @@ class Learner(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(120))
+    # まとめメールの宛先。未設定なら送信時に EMAIL_SENDER へフォールバックする (Phase 6)。
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     native_lang: Mapped[str] = mapped_column(String(16), default="id")  # 既定: Bahasa Indonesia
     target_sector: Mapped[str] = mapped_column(String(32), default="kaigo")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

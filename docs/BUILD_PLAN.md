@@ -94,14 +94,18 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 
 ## Phase 6 — 結果メール
 **ゴール:** セッション終了でメールが届く。
-- [ ] SES（または SendGrid）連携
-- [ ] 学習者向けまとめメール（スコア ＋ 次回リンク、Bahasa ＋ 日本語）
-- [ ] 教師向けレポート（クラスの当日サマリ、要フォロー学習者）
-- [ ] セッション終了をトリガーに送信し、`summary_sent_at` を記録
-- **受け入れ:** 終了時に2種類のメールが送られる（送信ログで確認）。
+- [x] Amazon SES 連携（`app/emailer.py` の `send_email`：boto3 は遅延 import、認証情報は引数、一時エラーは retriable。テストではスタブ）
+- [x] 学習者向けまとめメール（`build_learner_email`：発音/会話/合格ライン到達度 ＋ 要練習語 ＋ 次回リンク。説明は Bahasa 主・練習内容は日本語で混ぜない）
+- [x] 教師向けレポート（`build_teacher_email`：当日サマリ＋到達度ランキング＋要フォロー<50%を自動フラグ。閾値は `combine.FOLLOWUP_PASSLINE_PCT` に集約）
+- [x] セッション終了をトリガーに送信し、`summary_sent_at` を記録（`app/session_summary.py` の `finalize_session`：`/api/sessions/{id}/end` が呼ぶ。2通送って1通以上成功なら打刻。送信済みは skip、`?resend=true` で再送）
+- [x] 追加: `Learner.email` 追加（未設定なら EMAIL_SENDER にフォールバック＝SES サンドボックスでも届く）、`teacher_email`/`app_base_url` 設定、`SessionEndResult`（送信ログ＝emails フィールド）、ユニットテスト（`test_emailer.py`＝本文の純関数、`test_session_end_email.py`＝送信・冪等・skip・404 を SES スタブで検証）
+- [x] 実 SES で 1 回確認（us-east-1 サンドボックス。`gutomo999@gmail.com` を identity 検証し送信元/宛先に使用。Dewi のセッションを finalize → 学習者まとめ＋教師レポートの 2 通が MessageId 付きで送信され、`summary_sent_at` 打刻を確認）
+- **受け入れ:** 終了時に2種類のメールが送られる（送信ログ＝`emails` で確認。SES スタブのユニットテスト ＋ 実 SES 往復で検証済み）。
 
 ## Phase 7 — デモ仕上げ
 **ゴール:** 10から12分のライブデモが滞りなく回る（`docs/DESIGN.md` の §6 の台本）。
+- [x] レッスン終了 → まとめメール送信を**学習者アプリの UI から**起こす（`frontend/src/SessionBar.tsx` の終了ボタン → `POST /api/sessions/{id}/end`。スクリプト/curl 不要）。セッションは `SessionProvider` が保持し（`session-context.ts`）、固定のデモ学習者「Live Demo (Siswa)」を再利用。ドリル・ロールプレイの各ターンは `session_id` 付き `evaluate` でそのセッションに保存され、録音のたびに合格ライン到達度が動く（＝money shot）。送信ログ（宛先・status）は押下後に画面表示。ロール切替をまたいでもセッションは維持する
+- [x] 実ブラウザで通し確認（Chrome で 📱Siswa → ドリル1ターンを録音 → Azure 発音採点 Accuracy 95 → 合格ライン到達度 81.8%／CEFR B1・JLPT N3 に更新 → 「Akhiri sesi & kirim ringkasan」で `finalize_session` を起動 → 学習者まとめ＋教師レポートの 2 通が実 SES（us-east-1 サンドボックス、宛先は EMAIL_SENDER フォールバック）で送信され、`summary_sent_at` 打刻と受信を確認。2026-07-01）
 - [ ] デモ用の学習者1名 ＋ クラス（要フォロー2名）をシード
 - [ ] 「わざと少し外す」発音の見せ場を再現確認
 - [ ] 台本どおりに通しリハーサル

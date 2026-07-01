@@ -57,6 +57,9 @@ def _setup(db, tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "aws_access_key_id", "ak")
     monkeypatch.setattr(settings, "aws_secret_access_key", "sk")
     monkeypatch.setattr(settings, "bedrock_model_id", "m")
+    # Phase 6: このファイルはメールを検証しない。SES を未設定にして /end をスキップ経路に固定する
+    # (backend/.env に EMAIL_SENDER があっても実送信しない)。送信検証は test_session_end_email.py。
+    monkeypatch.setattr(settings, "email_sender", None)
 
     def fake_convert(src, dst, **_k):
         Path(dst).write_bytes(SAMPLE_WAV.read_bytes())
@@ -101,9 +104,12 @@ def test_learner_session_lifecycle() -> None:
     session_id = se.json()["id"]
     assert se.json()["ended_at"] is None
 
+    # Phase 6: /end は結果メールの送信を試みて SessionEndResult を返す。
+    # このテストは SES 未設定なのでメールはスキップされ、セッション終了だけ行われる。
     ended = client.post(f"/api/sessions/{session_id}/end")
     assert ended.status_code == 200
-    assert ended.json()["ended_at"] is not None
+    assert ended.json()["session"]["ended_at"] is not None
+    assert ended.json()["emails_sent"] is False
     assert client.get(f"/api/sessions/{session_id}").status_code == 200
 
 

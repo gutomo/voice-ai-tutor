@@ -72,6 +72,8 @@ export type TurnEvaluation = {
   pronunciation: PronunciationResult | null
   rubric: RubricScore | null
   combined: CombinedScore
+  // session_id を渡して永続化したときだけ、更新後の学習者プロファイルが返る (money shot)。
+  profile: LearnerProfile | null
 }
 
 // HTTP ステータスを保持するエラー (フロントが 503/422 を出し分けられるように)。
@@ -161,6 +163,8 @@ export type EvaluateBody = {
   turnNo?: number
   transcript?: string
   patientText?: string
+  // 指定するとサーバが採点結果を DB に保存し、更新後プロファイルを返す (Phase 4/7)。
+  sessionId?: number
 }
 
 // 1ターンを統合評価する (scripted=発音、roleplay=STT＋ルーブリック＋合成)。
@@ -174,6 +178,7 @@ export async function evaluateTurn(turnId: string, body: EvaluateBody = {}): Pro
       turn_no: body.turnNo,
       transcript: body.transcript,
       patient_text: body.patientText,
+      session_id: body.sessionId,
     }),
   })
   if (!res.ok) throw await parseError(res)
@@ -193,6 +198,7 @@ export type LearnerProfile = {
 export type Learner = {
   id: number
   name: string
+  email: string | null
   native_lang: string
   target_sector: string
   created_at: string
@@ -237,6 +243,63 @@ export async function getLearnerTurns(learnerId: number): Promise<Turn[]> {
 // 保存済みターンの音声 URL (会話ログの再生用)。
 export function turnAudioUrl(turnId: string): string {
   return `/api/turn/${turnId}/audio`
+}
+
+// --- Phase 7: セッション ライフサイクル (学習者アプリから終了 → まとめメール) ---
+
+export type Session = {
+  id: number
+  learner_id: number
+  scenario: string
+  started_at: string
+  ended_at: string | null
+  summary_sent_at: string | null
+}
+
+export type EmailResult = {
+  kind: 'learner' | 'teacher'
+  recipient: string
+  status: 'sent' | 'skipped' | 'error'
+  message_id: string | null
+  detail: string | null
+}
+
+export type SessionEndResult = {
+  session: Session
+  emails_sent: boolean
+  emails: EmailResult[]
+}
+
+// デモ用の学習者を作る (メール未指定なら SES 送信元にフォールバック＝サンドボックスでも届く)。
+export async function createLearner(body: { name: string; email?: string }): Promise<Learner> {
+  const res = await fetch('/api/learners', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as Learner
+}
+
+// 学習者に紐づくレッスンセッションを開始する (以降のターンをここに保存する)。
+export async function createSession(
+  learnerId: number,
+  scenario = 'kaigo_morning',
+): Promise<Session> {
+  const res = await fetch('/api/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ learner_id: learnerId, scenario }),
+  })
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as Session
+}
+
+// セッションを終了し、結果メール (学習者まとめ + 教師レポート) を送る。送信ログを返す。
+export async function endSession(sessionId: number, resend = false): Promise<SessionEndResult> {
+  const res = await fetch(`/api/sessions/${sessionId}/end?resend=${resend}`, { method: 'POST' })
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as SessionEndResult
 }
 
 // 日本語テキストを Azure TTS で合成し、再生用の object URL を返す。

@@ -10,6 +10,7 @@ import {
 import { RubricCard } from './RubricCard'
 import { ScoreCard } from './ScoreCard'
 import { useRecorder } from './useRecorder'
+import { useSession } from './session-context'
 import './Recorder.css'
 
 // 介護「朝の声かけ」のロールプレイ1ターン (DESIGN §2 Step 4)。
@@ -33,6 +34,7 @@ type Flow =
 
 export function RolePlay() {
   const rec = useRecorder()
+  const { ensureSession, notePersistedTurn } = useSession()
   const [flow, setFlow] = useState<Flow>({ kind: 'idle' })
   const [opening, setOpening] = useState<string>(FALLBACK_OPENING)
   const [openingGloss, setOpeningGloss] = useState<string>('')
@@ -80,14 +82,18 @@ export function RolePlay() {
     if (!rec.blob) return
     setFlow({ kind: 'uploading' })
     try {
+      // 保存先セッションを確保 (取得できなければ採点だけ行い保存はスキップ)。
+      const sessionId = await ensureSession().catch(() => undefined)
       const turn = await uploadTurn(rec.blob, { scenario: SCENARIO })
       setFlow({ kind: 'scoring' })
       const result = await evaluateTurn(turn.turn_id, {
         mode: 'roleplay',
         scenario: SCENARIO,
         patientText: opening,
+        sessionId,
       })
       setFlow({ kind: 'done', result })
+      if (sessionId != null) notePersistedTurn(result.profile?.kaigo_passline_pct ?? null)
     } catch (err: unknown) {
       setFlow({ kind: 'error', message: errorMessage(err) })
     }

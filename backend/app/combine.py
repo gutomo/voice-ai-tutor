@@ -14,6 +14,9 @@ TASK_PENALTY = 10.0
 # 合格ライン到達度の推定オフセット: combined_score からこの値を引く (デモ用ヒューリスティック)。
 # 例: combined 78 → 約 63% (DESIGN §2 の "推定 62%" に整合)。
 PASSLINE_OFFSET = 15.0
+# 「要フォロー」の閾値: 合格ライン到達度がこの値未満なら教師レポートでフラグする。
+# Phase 5 コホートビュー (frontend/src/dashboard) と同じ 50%。
+FOLLOWUP_PASSLINE_PCT = 50.0
 
 # CEFR → JLPT のざっくり対応 (デモ表示用)。
 _CEFR_TO_JLPT = {"A1": "N5", "A2": "N4", "B1": "N3", "B2": "N2", "C1": "N1"}

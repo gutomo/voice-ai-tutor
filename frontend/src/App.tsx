@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Recorder } from './Recorder'
 import { RolePlay } from './RolePlay'
+import { SessionBar } from './SessionBar'
+import { SessionProvider } from './SessionProvider'
 import { Dashboard } from './dashboard/Dashboard'
 import './App.css'
 
@@ -26,7 +28,8 @@ function App() {
   }, [])
 
   return (
-    <>
+    // セッション状態はロール切替をまたいで保持する (録音 → ダッシュボード確認 → 終了)。
+    <SessionProvider>
       {/* 学習者アプリ (候補者の端末) と教師ダッシュボードの切替。デモで画面を切り替える。 */}
       <nav className="role-switch" role="tablist" aria-label="Tampilan">
         <button
@@ -82,6 +85,8 @@ function App() {
             </button>
           </div>
 
+          <SessionBar />
+
           {mode === 'drill' ? <Recorder /> : <RolePlay />}
 
           <p className="hint">
@@ -91,7 +96,7 @@ function App() {
           </p>
         </main>
       )}
-    </>
+    </SessionProvider>
   )
 }
 
