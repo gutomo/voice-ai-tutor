@@ -28,6 +28,11 @@ venv/
 dist/
 build/
 
+# --- ローカル SQLite (開発・シード用。本番は Postgres) ---
+*.db
+*.sqlite
+*.sqlite3
+
 # --- Node / frontend (Vite + React) ---
 node_modules/
 frontend/dist/
