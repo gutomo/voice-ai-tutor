@@ -104,6 +104,7 @@ learner_profile(learner_id, cefr_estimate, jlpt_estimate,
 
 ## Phase 7 — デモ仕上げ
 **ゴール:** 10から12分のライブデモが滞りなく回る（`docs/DESIGN.md` の §6 の台本）。
+- [x] レッスン終了 → まとめメール送信を**学習者アプリの UI から**起こす（`frontend/src/SessionBar.tsx` の終了ボタン → `POST /api/sessions/{id}/end`。スクリプト/curl 不要）。セッションは `SessionProvider` が保持し（`session-context.ts`）、固定のデモ学習者「Live Demo (Siswa)」を再利用。ドリル・ロールプレイの各ターンは `session_id` 付き `evaluate` でそのセッションに保存され、録音のたびに合格ライン到達度が動く（＝money shot）。送信ログ（宛先・status）は押下後に画面表示。ロール切替をまたいでもセッションは維持する
 - [ ] デモ用の学習者1名 ＋ クラス（要フォロー2名）をシード
 - [ ] 「わざと少し外す」発音の見せ場を再現確認
 - [ ] 台本どおりに通しリハーサル

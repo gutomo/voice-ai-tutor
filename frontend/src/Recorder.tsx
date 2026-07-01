@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import {
   ApiError,
+  evaluateTurn,
   getScenarioTurns,
-  scoreTurn,
   uploadTurn,
   type PronunciationResult,
   type ScenarioTurn,
 } from './api'
 import { ScoreCard } from './ScoreCard'
 import { useRecorder } from './useRecorder'
+import { useSession } from './session-context'
 import './Recorder.css'
 
 // 介護「朝の声かけ」のモデル文を順に復唱するドリル (DESIGN §2 Step 3)。
@@ -33,6 +34,7 @@ type Flow =
 
 export function Recorder() {
   const rec = useRecorder()
+  const { ensureSession, notePersistedTurn } = useSession()
   const [flow, setFlow] = useState<Flow>({ kind: 'idle' })
   const [turns, setTurns] = useState<ScenarioTurn[]>(FALLBACK_TURNS)
   const [index, setIndex] = useState(0)
@@ -67,15 +69,25 @@ export function Recorder() {
     rec.reset()
   }
 
-  // 送信 → アップロード → そのまま自動採点。
+  // 送信 → アップロード → 発音採点 (セッションがあればターンも保存する)。
   const onSend = async () => {
     if (!rec.blob) return
     setFlow({ kind: 'uploading' })
     try {
+      // 保存先セッションを確保 (取得できなければ採点だけ行い保存はスキップ)。
+      const sessionId = await ensureSession().catch(() => undefined)
       const turn = await uploadTurn(rec.blob, { scenario: SCENARIO, turnNo: current.turn_no })
       setFlow({ kind: 'scoring' })
-      const result = await scoreTurn(turn.turn_id, { scenario: SCENARIO, turnNo: current.turn_no })
+      const evaluation = await evaluateTurn(turn.turn_id, {
+        mode: 'scripted',
+        scenario: SCENARIO,
+        turnNo: current.turn_no,
+        sessionId,
+      })
+      const result = evaluation.pronunciation
+      if (!result) throw new Error('Skor pengucapan tidak tersedia.')
       setFlow({ kind: 'done', result })
+      if (sessionId != null) notePersistedTurn(evaluation.profile?.kaigo_passline_pct ?? null)
     } catch (err: unknown) {
       setFlow({ kind: 'error', message: errorMessage(err) })
     }

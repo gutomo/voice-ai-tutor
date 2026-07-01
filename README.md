@@ -212,6 +212,13 @@ uv run python -m app.seed     # 既定の DATABASE_URL (docker compose の Postg
 curl -X POST http://localhost:8000/api/sessions/1/end
 ```
 
+**学習者アプリから終了する (Phase 7)**: 学習者画面上部のセッションバー (`frontend/src/SessionBar.tsx`) に
+「Akhiri sesi & kirim ringkasan」ボタンを置いた。デモではこのボタンで上の `curl` と同じ終了 → 送信を起こせる
+(スクリプト不要)。録音した各ターンは固定のデモ学習者「Live Demo (Siswa)」のセッションに保存され、
+録音のたびに合格ライン到達度が動き (money shot)、教師ダッシュボードにも同じ 1 名として現れる。送信ログ
+(宛先・status) はボタン押下後にそのまま画面へ出す。セッション状態は `SessionProvider` が保持するので、
+ロールを教師ダッシュボードに切り替えて到達度を見せてから学習者画面に戻って終了、という流れも崩れない。
+
 **環境変数** (`.env`): `EMAIL_SENDER` (SES で検証済みの送信元), `TEACHER_EMAIL` (教師レポートの宛先),
 `APP_BASE_URL` (学習者メールの次回リンクの基点)。SES は `AWS_REGION` で有効化し、送信元アドレスを検証しておく
 (サンドボックスでは宛先も検証が必要)。認証情報は Bedrock と同じ IAM キーを流用できる (SES 権限を付与)。
